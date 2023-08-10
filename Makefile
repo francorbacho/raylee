@@ -1,13 +1,10 @@
-src = \
-    ./src/main.ha
+all: raylee
 
-all: raytracer
-
-raytracer:
+raylee:
 	mkdir -p target
-	hare build -o target/$@ src/
+	hare build -o ./target/$@ cmd/
 
 clean:
-	rm -rf target
+	rm -rf target render.ppm
 
-.PHONY: all raytracer clean
+.PHONY: all raylee clean
