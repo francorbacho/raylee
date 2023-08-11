@@ -18,9 +18,12 @@ export fn scene() void = {
         yield vector3 { x = viewport_width, y = viewport_height, z = 1.0 };
     };
 
-    const viewport_pixel_dim = {
+    const viewport_coordinate_frame = {
         let tmp = viewport_dim;
         raylee::math::div(&tmp, &vector3 { x = width: f64, y = height: f64, z = 1.0 });
+        // Change the direction of the coordinate frame to have the topleft pixel
+        // be the j0i0.
+        tmp.y = -tmp.y;
         yield tmp;
     };
 
@@ -39,7 +42,7 @@ export fn scene() void = {
 
     const pixel_00 = {
         let tmp1 = viewport_topleft;
-        let tmp2 = viewport_pixel_dim;
+        let tmp2 = viewport_coordinate_frame;
 
         raylee::math::div(&tmp2, &splat(2.0));
         raylee::math::add(&tmp1, &tmp2);
@@ -52,7 +55,7 @@ export fn scene() void = {
     for (let j = 0z; j < height; j += 1) {
         for (let i = 0z; i < width; i += 1) {
             const pixel_ji = {
-                let tmp = viewport_pixel_dim;
+                let tmp = viewport_coordinate_frame;
                 raylee::math::mul(&tmp, &vector3 { x = i: f64, y = j: f64, ... });
                 raylee::math::add(&tmp, &pixel_00);
                 yield tmp;
@@ -84,5 +87,6 @@ fn ray_color(ray: ray) color = {
     const blue = rgb(0.5, 0.7, 1.0);
     const white = rgb(1.0, 1.0, 1.0);
 
-    return raylee::math::lerp(direction_unit.y, blue, white);
+    const f = (direction_unit.y + 1.0) * 0.5;
+    return raylee::math::lerp(f, white, blue);
 };
