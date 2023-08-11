@@ -33,7 +33,7 @@ fn run(width: u32, height: u32) (void | fs::error | sdl2::error) = {
     const window_width = width: int * factor;
     const window_height = height: int * factor;
 
-    sdl2::SDL_Init(sdl2::SDL_INIT_VIDEO)!;
+    sdl2::SDL_Init(sdl2::SDL_INIT_VIDEO)?;
     defer sdl2::SDL_Quit();
 
 	const win = sdl2::SDL_CreateWindow("raylee",
@@ -59,7 +59,7 @@ fn run(width: u32, height: u32) (void | fs::error | sdl2::error) = {
         0,
         result.width: int, result.height: int,
         32, 0, 0, 0, 0,
-    )!;
+    )?;
 
     let pixels: []u32 = [];
 
@@ -75,7 +75,7 @@ fn run(width: u32, height: u32) (void | fs::error | sdl2::error) = {
 
     surface.pixels = &pixels[0];
 
-    let texture = sdl2::SDL_CreateTextureFromSurface(state.render, surface)!;
+    let texture = sdl2::SDL_CreateTextureFromSurface(state.render, surface)?;
 
     state.surface = surface;
     state.texture = texture;
