@@ -70,7 +70,21 @@ export fn scene() void = {
     };
 };
 
+
+fn hit_sphere(center: point, radius: f64, ray: ray) bool = {
+    const oc = vsub(ray.origin, center);
+    const a = vdot(ray.direction, ray.direction);
+    const b = 2.0 * vdot(oc, ray.direction);
+    const c = vdot(oc, oc) - radius * radius;
+    const discriminant = b * b - 4.0 * a * c;
+    return discriminant >= 0.0;
+};
+
 fn ray_color(ray: ray) color = {
+    if (hit_sphere(v3(0.0, 0.0, -1.0), 0.5, ray)) {
+        return rgb(1.0, 0.0, 0.0);
+    };
+
     const direction_unit = raylee::math::unit(ray.direction);
 
     const blue = rgb(0.5, 0.7, 1.0);
