@@ -1,4 +1,4 @@
 export type ray = struct {
-    point: point,
+    origin: point,
     direction: vector3,
 };

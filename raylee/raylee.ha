@@ -1,5 +1,9 @@
 use raylee::math;
-use raylee::math::{ rgb, color, vector3, point, ray, splat };
+use raylee::math::{
+    color, vector3, point, ray,
+    rgb, v3, splat,
+    vadd, vsub, vmul, vdiv, vdot
+};
 
 use fmt;
 
@@ -15,12 +19,11 @@ export fn scene() void = {
     const viewport_dim = {
         const viewport_height: f64 = 2.0;
         const viewport_width: f64 = viewport_height * aspect_ratio;
-        yield vector3 { x = viewport_width, y = viewport_height, z = 1.0 };
+        yield v3(viewport_width, viewport_height, 1.0);
     };
 
     const viewport_coordinate_frame = {
-        let tmp = viewport_dim;
-        raylee::math::div(&tmp, &vector3 { x = width: f64, y = height: f64, z = 1.0 });
+        let tmp = vdiv(viewport_dim, v3(width: f64, height: f64, 1.0));
         // Change the direction of the coordinate frame to have the topleft pixel
         // be the j0i0.
         tmp.y = -tmp.y;
@@ -29,14 +32,8 @@ export fn scene() void = {
 
     const viewport_topleft = {
         let tmp = camera_position;
-
-        raylee::math::add(&tmp, &vector3 { z = -focal_length, ... });
-        raylee::math::add(&tmp, &vector3 {
-            x = -viewport_dim.x / 2.0,
-            y = viewport_dim.y / 2.0,
-            ...
-        });
-
+        tmp = vadd(tmp, v3(0.0, 0.0, -focal_length));
+        tmp = vadd(tmp, v3(-viewport_dim.x / 2.0, viewport_dim.y / 2.0, 0.0));
         yield tmp;
     };
 
@@ -44,8 +41,8 @@ export fn scene() void = {
         let tmp1 = viewport_topleft;
         let tmp2 = viewport_coordinate_frame;
 
-        raylee::math::div(&tmp2, &splat(2.0));
-        raylee::math::add(&tmp1, &tmp2);
+        tmp2 = vdiv(tmp2, splat(2.0));
+        tmp1 = vadd(tmp1, tmp2);
 
         yield tmp1;
     };
@@ -56,33 +53,25 @@ export fn scene() void = {
         for (let i = 0z; i < width; i += 1) {
             const pixel_ji = {
                 let tmp = viewport_coordinate_frame;
-                raylee::math::mul(&tmp, &vector3 { x = i: f64, y = j: f64, ... });
-                raylee::math::add(&tmp, &pixel_00);
+                tmp = vmul(tmp, v3(i: f64, j: f64, 0.0));
+                tmp = vadd(tmp, pixel_00);
                 yield tmp;
             };
 
             const ray_ji = ray {
-                point = pixel_ji,
-                direction = {
-                    let tmp = pixel_ji;
-                    raylee::math::sub(&pixel_ji, &camera_position);
-                    yield tmp;
-                },
+                origin = pixel_ji,
+                direction = vsub(pixel_ji, camera_position),
             };
 
             let color_ji = ray_color(ray_ji);
-            raylee::math::mul(&color_ji, &splat(255.0));
+            color_ji = vmul(color_ji, splat(255.0));
             fmt::printf("{} {} {}\n", color_ji.x: int, color_ji.y: int, color_ji.z: int)!;
         };
     };
 };
 
 fn ray_color(ray: ray) color = {
-    const direction_unit = {
-        let tmp = ray.direction;
-        raylee::math::unit(&tmp);
-        yield tmp;
-    };
+    const direction_unit = raylee::math::unit(ray.direction);
 
     const blue = rgb(0.5, 0.7, 1.0);
     const white = rgb(1.0, 1.0, 1.0);
