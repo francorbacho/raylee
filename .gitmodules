@@ -1,0 +1,3 @@
+[submodule "third-party/hare-sdl2"]
+	path = third-party/hare-sdl2
+	url = https://git.sr.ht/~sircmpwn/hare-sdl2

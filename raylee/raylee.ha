@@ -7,14 +7,17 @@ use raylee::math::{
 
 use fmt;
 
-export fn scene() void = {
+export type image = struct {
+    width: uint,
+    height: uint,
+    pixels: []color,
+};
+
+export fn scene(width: u32, height: u32) image = {
     const camera_position = point { ... };
 
     const focal_length: f64 = 1.0;
-    const aspect_ratio: f64 = 16.0 / 9.0;
-
-    const height: uint = 144;
-    const width: uint = (height: f64 * aspect_ratio): uint;
+    const aspect_ratio: f64 = width: f32 / height: f32;
 
     const viewport_dim = {
         const viewport_height: f64 = 2.0;
@@ -47,7 +50,7 @@ export fn scene() void = {
         yield tmp1;
     };
 
-    fmt::printf("P3\n{} {}\n 255\n", width, height)!;
+    let pixels: []color = [];
 
     for (let j = 0z; j < height; j += 1) {
         for (let i = 0z; i < width; i += 1) {
@@ -65,8 +68,14 @@ export fn scene() void = {
 
             let color_ji = ray_color(ray_ji);
             color_ji = vmul(color_ji, splat(255.0));
-            fmt::printf("{} {} {}\n", color_ji.x: int, color_ji.y: int, color_ji.z: int)!;
+            append(pixels, color_ji);
         };
+    };
+
+    return image {
+        width = width,
+        height = height,
+        pixels = pixels,
     };
 };
 
