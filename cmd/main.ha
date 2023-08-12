@@ -24,14 +24,14 @@ type windowing_state = struct {
 };
 
 export fn main() void = {
-    run(256, 144)!;
+    run(768, 432)!;
 };
 
 fn run(width: u32, height: u32) (void | fs::error | sdl2::error) = {
     const factor = 4;
 
-    const window_width = width: int * factor;
-    const window_height = height: int * factor;
+    const window_width = 800;
+    const window_height = (window_width: f64 * height: f64 / width: f32): int;
 
     sdl2::SDL_Init(sdl2::SDL_INIT_VIDEO)?;
     defer sdl2::SDL_Quit();
