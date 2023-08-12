@@ -53,6 +53,7 @@ export fn scene(width: u32, height: u32) image = {
         yield tmp1;
     };
 
+    let surfaces: []**surface_vtable = [&sphere(v3(0.0, 0.0, -1.0), 0.5)];
     let pixels: []color = [];
 
     for (let j = 0z; j < height; j += 1) {
@@ -69,7 +70,7 @@ export fn scene(width: u32, height: u32) image = {
                 direction = vunit(vsub(pixel_ji, camera_position)),
             };
 
-            let color_ji = ray_color(ray_ji);
+            let color_ji = ray_color(surfaces, ray_ji);
             color_ji = vmul(color_ji, vsplat(255.0));
             append(pixels, color_ji);
         };
@@ -82,31 +83,15 @@ export fn scene(width: u32, height: u32) image = {
     };
 };
 
+fn ray_color(surfaces: []**surface_vtable, ray: ray) color = {
+    for (let i = 0z; i < len(surfaces); i += 1) {
+        let surface = surfaces[i];
 
-fn hit_sphere(center: point, radius: f64, ray: ray) f64 = {
-    const oc = vsub(ray.origin, center);
-    const a = vdot(ray.direction, ray.direction);
-    const b = 2.0 * vdot(oc, ray.direction);
-    const c = vdot(oc, oc) - radius * radius;
-    const discriminant = b * b - 4.0 * a * c;
-
-    if (discriminant < 0.0) {
-        return -1.0;
-    } else {
-        return (-b - math::sqrtf64(discriminant)) / (2.0 * a);
-    };
-};
-
-fn ray_color(ray: ray) color = {
-    const sphere_center = v3(0.0, 0.0, -1.0);
-    const distance = hit_sphere(sphere_center, 0.5, ray);
-    if (distance > 0.0) {
-        let color = rtravel(ray, distance);
-        color = vsub(color, sphere_center);
-        color = vunit(color);
-        color = vadd(color, vsplat(1.0));
-        color = vmul(color, vsplat(0.5));
-        return color;
+        match (surface.hit(surface, ray)) {
+        case void => yield;
+        case let color: color =>
+            return color;
+        };
     };
 
     const direction_unit = ray.direction;
