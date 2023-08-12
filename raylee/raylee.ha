@@ -1,9 +1,12 @@
 use raylee::math;
 use raylee::math::{
     color, vector3, point, ray,
-    rgb, v3, splat,
-    vadd, vsub, vmul, vdiv, vdot
+    rgb, v3, vsplat,
+    vadd, vsub, vmul, vdiv, vdot, vunit,
+    rtravel
 };
+
+use math;
 
 use fmt;
 
@@ -44,7 +47,7 @@ export fn scene(width: u32, height: u32) image = {
         let tmp1 = viewport_topleft;
         let tmp2 = viewport_coordinate_frame;
 
-        tmp2 = vdiv(tmp2, splat(2.0));
+        tmp2 = vdiv(tmp2, vsplat(2.0));
         tmp1 = vadd(tmp1, tmp2);
 
         yield tmp1;
@@ -63,11 +66,11 @@ export fn scene(width: u32, height: u32) image = {
 
             const ray_ji = ray {
                 origin = pixel_ji,
-                direction = vsub(pixel_ji, camera_position),
+                direction = vunit(vsub(pixel_ji, camera_position)),
             };
 
             let color_ji = ray_color(ray_ji);
-            color_ji = vmul(color_ji, splat(255.0));
+            color_ji = vmul(color_ji, vsplat(255.0));
             append(pixels, color_ji);
         };
     };
@@ -80,21 +83,33 @@ export fn scene(width: u32, height: u32) image = {
 };
 
 
-fn hit_sphere(center: point, radius: f64, ray: ray) bool = {
+fn hit_sphere(center: point, radius: f64, ray: ray) f64 = {
     const oc = vsub(ray.origin, center);
     const a = vdot(ray.direction, ray.direction);
     const b = 2.0 * vdot(oc, ray.direction);
     const c = vdot(oc, oc) - radius * radius;
     const discriminant = b * b - 4.0 * a * c;
-    return discriminant >= 0.0;
+
+    if (discriminant < 0.0) {
+        return -1.0;
+    } else {
+        return (-b - math::sqrtf64(discriminant)) / (2.0 * a);
+    };
 };
 
 fn ray_color(ray: ray) color = {
-    if (hit_sphere(v3(0.0, 0.0, -1.0), 0.5, ray)) {
-        return rgb(1.0, 0.0, 0.0);
+    const sphere_center = v3(0.0, 0.0, -1.0);
+    const distance = hit_sphere(sphere_center, 0.5, ray);
+    if (distance > 0.0) {
+        let color = rtravel(ray, distance);
+        color = vsub(color, sphere_center);
+        color = vunit(color);
+        color = vadd(color, vsplat(1.0));
+        color = vmul(color, vsplat(0.5));
+        return color;
     };
 
-    const direction_unit = raylee::math::unit(ray.direction);
+    const direction_unit = ray.direction;
 
     const blue = rgb(0.5, 0.7, 1.0);
     const white = rgb(1.0, 1.0, 1.0);
