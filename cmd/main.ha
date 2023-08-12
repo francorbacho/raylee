@@ -3,6 +3,7 @@ use strings;
 use fmt;
 use io;
 use fs;
+use time;
 
 use raylee;
 
@@ -53,7 +54,12 @@ fn run(width: u32, height: u32) (void | fs::error | sdl2::error) = {
     };
     defer free(state.surface);
 
+    const before = time::now(time::clock::REALTIME);
     const result: raylee::image = raylee::scene(width, height);
+    const after = time::now(time::clock::REALTIME);
+    const took = time::diff(before, after) / 1e6;
+
+    fmt::errorf("raytracing took {} ms\n", took)!;
 
     let surface = sdl2::SDL_CreateRGBSurface(
         0,
