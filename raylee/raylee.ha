@@ -10,26 +10,10 @@ use math;
 
 use fmt;
 
-export type image = struct {
-    width: uint,
-    height: uint,
-    pixels: []color,
-};
-
-export fn scene(width: u32, height: u32) image = {
-    const camera_position = point { ... };
-
-    const focal_length: f64 = 1.0;
-    const aspect_ratio: f64 = width: f32 / height: f32;
-
-    const viewport_dim = {
-        const viewport_height: f64 = 2.0;
-        const viewport_width: f64 = viewport_height * aspect_ratio;
-        yield v3(viewport_width, viewport_height, 1.0);
-    };
-
+export fn render(scene: scene) image = {
+    const viewport_size = scene.camera.viewport_size;
     const viewport_coordinate_frame = {
-        let tmp = vdiv(viewport_dim, v3(width: f64, height: f64, 1.0));
+        let tmp = vdiv(viewport_size, v3(scene.width: f64, scene.height: f64, 1.0));
         // Change the direction of the coordinate frame to have the topleft pixel
         // be the j0i0.
         tmp.y = -tmp.y;
@@ -37,9 +21,9 @@ export fn scene(width: u32, height: u32) image = {
     };
 
     const viewport_topleft = {
-        let tmp = camera_position;
-        tmp = vadd(tmp, v3(0.0, 0.0, -focal_length));
-        tmp = vadd(tmp, v3(-viewport_dim.x / 2.0, viewport_dim.y / 2.0, 0.0));
+        let tmp = scene.camera.position;
+        tmp = vadd(tmp, v3(0.0, 0.0, -scene.camera.focal_length));
+        tmp = vadd(tmp, v3(-viewport_size.x / 2.0, viewport_size.y / 2.0, 0.0));
         yield tmp;
     };
 
@@ -53,8 +37,8 @@ export fn scene(width: u32, height: u32) image = {
     let surfaces: []**surface_vtable = [&sphere(v3(0.0, 0.0, -1.0), 0.5)];
     let pixels: []color = [];
 
-    for (let j = 0z; j < height; j += 1) {
-        for (let i = 0z; i < width; i += 1) {
+    for (let j = 0z; j < scene.height; j += 1) {
+        for (let i = 0z; i < scene.width; i += 1) {
             const pixel_ji = {
                 let tmp = viewport_coordinate_frame;
                 tmp = vmul(tmp, v3(i: f64, j: f64, 0.0));
@@ -64,7 +48,7 @@ export fn scene(width: u32, height: u32) image = {
 
             const ray_ji = ray {
                 origin = pixel_ji,
-                direction = vunit(vsub(pixel_ji, camera_position)),
+                direction = vunit(vsub(pixel_ji, scene.camera.position)),
             };
 
             let color_ji = ray_color(surfaces, ray_ji);
@@ -74,8 +58,8 @@ export fn scene(width: u32, height: u32) image = {
     };
 
     return image {
-        width = width,
-        height = height,
+        width = scene.width,
+        height = scene.height,
         pixels = pixels,
     };
 };

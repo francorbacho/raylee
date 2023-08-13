@@ -2,6 +2,7 @@ use math;
 
 export type vector3 = struct { x: f64, y: f64, z: f64 };
 export type point = vector3;
+export type vector2 = vector3;
 
 export fn v3(x: f64, y: f64, z: f64) vector3 = vector3 { x = x, y = y, z = z };
 export fn vsplat(value: f64) vector3 = vector3 { x = value, y = value, z = value };

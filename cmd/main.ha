@@ -6,6 +6,7 @@ use fs;
 use time;
 
 use raylee;
+use raylee::math::{ v3 };
 
 use sdl2;
 use sdl2::image;
@@ -61,7 +62,7 @@ fn run_sdl(width: u32, height: u32) (void | fs::error | sdl2::error) = {
     defer free(state.surface);
 
     const before = time::now(time::clock::REALTIME);
-    const result: raylee::image = raylee::scene(width, height);
+    const result: raylee::image = raylee::render(raylee::default_scene);
     const after = time::now(time::clock::REALTIME);
     const took = time::diff(before, after) / 1e6;
 
@@ -140,6 +141,25 @@ fn run_lua_script(path: str) void = {
     lua::lua_newtable(l);
     lua::luaL_setfuncs(l, raylee_funcs, 0);
     lua::lua_setglobal(l, "raylee");
+
+    const width = 256;
+    const height = 144;
+    const aspect_ratio: f64 = width: f64 / height: f64;
+
+    const viewport_height = 2.0;
+
+    let scene = raylee::scene {
+        width = 256,
+        height = 144,
+        camera = raylee::camera_settings {
+            viewport_size = v3(viewport_height * aspect_ratio, viewport_height, 1.0),
+            focal_length = 1.0,
+            ...
+        },
+    };
+
+    let img = raylee::render(scene);
+    raylee::save_to_file(img, "render.ppm");
 
     lua::luaL_loadfile(l, path)!;
     lua::lua_pcall(l, 0, 0, 0)!;
