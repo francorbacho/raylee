@@ -44,13 +44,10 @@ export fn scene(width: u32, height: u32) image = {
     };
 
     const pixel_00 = {
-        let tmp1 = viewport_topleft;
-        let tmp2 = viewport_coordinate_frame;
-
-        tmp2 = vdiv(tmp2, vsplat(2.0));
-        tmp1 = vadd(tmp1, tmp2);
-
-        yield tmp1;
+        let tmp = viewport_coordinate_frame;
+        tmp = vdiv(tmp, vsplat(2.0));
+        tmp = vadd(tmp, viewport_topleft);
+        yield tmp;
     };
 
     let surfaces: []**surface_vtable = [&sphere(v3(0.0, 0.0, -1.0), 0.5)];
