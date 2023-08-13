@@ -1,11 +1,13 @@
 function update(frame)
+    print('frame #' .. frame)
+
     local startx = 0
     local starty = 0
-    local startz = -1
+    local startz = 0
 
-    local endx = 2
-    local endy = 2
-    local endz = -1
+    local endx = 1
+    local endy = 1
+    local endz = 0
 
     local alpha = frame / 300
 
@@ -16,6 +18,3 @@ function update(frame)
     raylee.set_camera_position(x, y, z)
     raylee.set_done(frame >= 300)
 end
-
-print('running scripts/move_camera')
-update(0)
