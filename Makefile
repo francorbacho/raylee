@@ -1,5 +1,9 @@
-HAREPATH=/usr/src/hare/stdlib:/usr/src/hare/third-party/:./third-party/hare-sdl2/
-LIBS=-lc -lSDL2_image -lSDL2_mixer -lSDL2
+HAREPATH := $(shell hare version -v | grep HAREPATH | cut -d'	' -f 2)
+HAREPATH := $(HAREPATH):./third-party/hare-lua/
+HAREPATH := $(HAREPATH):./third-party/hare-sdl2/
+
+LIBS := -lc -lSDL2_image -lSDL2_mixer -lSDL2
+LIBS := $(LIBS) -llua -lm
 
 all: raylee
 

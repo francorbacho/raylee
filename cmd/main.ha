@@ -8,12 +8,13 @@ use time;
 use raylee;
 
 use sdl2;
+use sdl2::image;
 use sdl2::{
     SDL_EventType, SDL_RendererFlags, SDL_WindowFlags,
     SDL_Surface, SDL_Texture,
 };
 
-use sdl2::image;
+use lua;
 
 type windowing_state = struct {
     done: bool,
@@ -25,10 +26,15 @@ type windowing_state = struct {
 };
 
 export fn main() void = {
-    run(768, 432)!;
+    if (len(os::args) == 1) {
+        run_sdl(768, 432)!;
+        return;
+    };
+
+    run_lua_script(os::args[1]);
 };
 
-fn run(width: u32, height: u32) (void | fs::error | sdl2::error) = {
+fn run_sdl(width: u32, height: u32) (void | fs::error | sdl2::error) = {
     const factor = 4;
 
     const window_width = 800;
@@ -118,4 +124,33 @@ fn draw(state: *windowing_state) (void | sdl2::error) = {
 	})?;
 
     sdl2::SDL_RenderPresent(state.render);
+};
+
+fn run_lua_script(path: str) void = {
+    let l = lua::luaL_newstate();
+    defer lua::lua_close(l);
+    lua::luaL_openlibs(l);
+
+    const raylee_funcs = [
+        lua::reg("set_camera_position", &set_camera_position),
+        lua::reg("set_done", &set_done),
+        lua::reg_null(),
+    ];
+
+    lua::lua_newtable(l);
+    lua::luaL_setfuncs(l, raylee_funcs, 0);
+    lua::lua_setglobal(l, "raylee");
+
+    lua::luaL_loadfile(l, path)!;
+    lua::lua_pcall(l, 0, 0, 0)!;
+
+    lua::lua_pop(l, lua::lua_gettop(l));
+};
+
+fn set_camera_position(l: *lua::lua_State) void = {
+    fmt::println("set_camera_position()")!;
+};
+
+fn set_done(l: *lua::lua_State) void = {
+    fmt::println("set_done()")!;
 };
