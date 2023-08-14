@@ -22,11 +22,14 @@ export const default_scene: scene = scene {
         viewport_size = vector3 { x = 3.555, y = 2.0, z= 1.0 },
         focal_length = 1.0,
     },
+
+    done = false,
 };
 
 export type scene = struct {
     width: u32, height: u32,
     camera: camera_settings,
+    done: bool,
 };
 
 export type camera_settings = struct {

@@ -145,27 +145,14 @@ fn run_lua_script(script_path: str) void = {
     lua::luaL_setfuncs(l, raylee_funcs, 0);
     lua::lua_setglobal(l, "raylee");
 
-    const width = 256;
-    const height = 144;
-    const aspect_ratio: f64 = width: f64 / height: f64;
-
-    const viewport_height = 2.0;
-
-    let scene = raylee::scene {
-        width = 256,
-        height = 144,
-        camera = raylee::camera_settings {
-            viewport_size = v3(viewport_height * aspect_ratio, viewport_height, 1.0),
-            focal_length = 1.0,
-            ...
-        },
-    };
-
     lua::luaL_loadfile(l, script_path)!;
     dispatch_lua(l, 0, 0);
 
-    for (let i = 0z; i < MAX_FRAME_COUNT && !done; i += 1) {
-        let img = raylee::render(scene);
+    let scene = global_scene();
+    fmt::printfln("scene is {}x{}", scene.width, scene.height)!;
+
+    for (let i = 0z; i < MAX_FRAME_COUNT && !scene.done; i += 1) {
+        let img = raylee::render(*scene);
         let buffer: [64]u8 = [0...];
         let path = fmt::bsprintf(buffer, "target/render{:03}.ppm", i);
         raylee::save_to_file(img, path);
@@ -175,8 +162,6 @@ fn run_lua_script(script_path: str) void = {
         case lua::errerr => void; // for some reason ok?
         case let err: lua::error => fmt::fatal("bad");
         };
-
-        scene.camera.position = camera_position;
 
         lua::lua_pushinteger(l, i: int);
         dispatch_lua(l, 1, 0);
@@ -194,26 +179,4 @@ fn dispatch_lua(l: *lua::lua_State, nargs: int, nret: int) void = {
         let errmsg = lua::lua_tostring(l, lua::lua_gettop(l));
         fmt::printfln("err: {}: {}", lua::strerror(err), errmsg)!;
     };
-};
-
-let done: bool = false;
-let camera_position: point = point { ... };
-
-fn set_camera_position(l: *lua::lua_State) void = {
-    let x = lua::luaL_checknumber(l, lua::lua_gettop(l) - 0);
-    let y = lua::luaL_checknumber(l, lua::lua_gettop(l) - 1);
-    let z = lua::luaL_checknumber(l, lua::lua_gettop(l) - 2);
-
-    camera_position.x = x;
-    camera_position.y = y;
-    camera_position.z = z;
-};
-
-fn set_done(l: *lua::lua_State) void = {
-    let done_idx = lua::lua_gettop(l);
-    if (!lua::lua_isboolean(l, done_idx)) {
-        lua::luaL_typeerror(l, done_idx, "bool");
-    };
-
-    done = lua::lua_toboolean(l, done_idx);
 };
