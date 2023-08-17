@@ -1,7 +1,7 @@
 use lua;
 use fmt;
 use raylee;
-use raylee::math::{ v3 };
+use raylee::math::{ v3, vunit };
 
 let _global_scene = raylee::scene { ... };
 
@@ -22,7 +22,7 @@ let _global_scene = raylee::scene { ... };
             viewport_size = v3(viewport_width, viewport_height, 1.0),
             focal_length = focal_length,
         },
-
+        light_direction = vunit(v3(0.8, 0.3, 0.7)),
         done = false,
     };
 };
@@ -39,6 +39,16 @@ fn set_camera_position(l: *lua::lua_State) void = {
     global_scene().camera.position.x = x;
     global_scene().camera.position.y = y;
     global_scene().camera.position.z = z;
+};
+
+fn set_light_direction(l: *lua::lua_State) void = {
+    let x = lua::luaL_checknumber(l, lua::lua_gettop(l) - 0);
+    let y = lua::luaL_checknumber(l, lua::lua_gettop(l) - 1);
+    let z = lua::luaL_checknumber(l, lua::lua_gettop(l) - 2);
+
+    global_scene().light_direction.x = x;
+    global_scene().light_direction.y = y;
+    global_scene().light_direction.z = z;
 };
 
 fn set_done(l: *lua::lua_State) void = {

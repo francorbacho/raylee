@@ -1,6 +1,6 @@
 use raylee::math;
 use raylee::math::{
-    ray, point,
+    vector3, ray, point,
     vsplat, v3,
     vsub, vdot, vunit,
     rtravel,
@@ -10,8 +10,14 @@ use fmt;
 
 use math;
 
+export type hit_record = struct {
+    where: point,
+    normal: vector3,
+    distance: f64,
+};
+
 export type surface_vtable = struct {
-    hit: *fn(**surface_vtable, ray) (void | raylee::math::color),
+    hit: *fn(**surface_vtable, ray) (void | hit_record),
 };
 
 export type surface_sphere = struct {
@@ -32,7 +38,7 @@ export fn sphere(center: point, radius: f64) surface_sphere = {
     };
 };
 
-fn hit_sphere(surface: **surface_vtable, ray: ray) (void | raylee::math::color) = {
+fn hit_sphere(surface: **surface_vtable, ray: ray) (void | hit_record) = {
     const sphere = surface: *surface_sphere;
 
     const oc = vsub(ray.origin, sphere.center);
@@ -44,13 +50,18 @@ fn hit_sphere(surface: **surface_vtable, ray: ray) (void | raylee::math::color) 
     if (discriminant < 0.0)
         return;
 
-    const distance = (-b - math::sqrtf64(discriminant)) / (2.0 * a);
-    const light_direction = vunit(v3(0.8, 0.3, 0.7));
+    let distance = (-b - math::sqrtf64(discriminant)) / (2.0 * a);
 
-    let normal = rtravel(ray, distance);
-    normal = vsub(normal, sphere.center);
-    normal = vunit(normal);
-    const lcf = (1.0 + vdot(normal, light_direction)) / 2.0;
+    if (distance < 0.0) {
+        distance = (-b + math::sqrtf64(discriminant)) / (2.0 * a);
+    };
 
-    return vsplat(lcf);
+    const where = rtravel(ray, distance);
+    const normal = vunit(vsub(where, sphere.center));
+
+    return hit_record {
+        where = where,
+        distance = distance,
+        normal = normal,
+    };
 };

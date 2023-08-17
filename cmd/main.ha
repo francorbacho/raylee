@@ -137,6 +137,7 @@ fn run_lua_script(script_path: str) void = {
 
     const raylee_funcs = [
         lua::reg("set_camera_position", &set_camera_position),
+        lua::reg("set_light_direction", &set_light_direction),
         lua::reg("set_done", &set_done),
         lua::reg_null(),
     ];

@@ -51,7 +51,7 @@ export fn render(scene: scene) image = {
                 direction = vunit(vsub(pixel_ji, scene.camera.position)),
             };
 
-            let color_ji = ray_color(surfaces, ray_ji);
+            let color_ji = ray_color(&scene, surfaces, ray_ji);
             color_ji = vmul(color_ji, vsplat(255.0));
             append(pixels, color_ji);
         };
@@ -64,14 +64,15 @@ export fn render(scene: scene) image = {
     };
 };
 
-fn ray_color(surfaces: []**surface_vtable, ray: ray) color = {
+fn ray_color(scene: *scene, surfaces: []**surface_vtable, ray: ray) color = {
     for (let i = 0z; i < len(surfaces); i += 1) {
         let surface = surfaces[i];
 
         match (surface.hit(surface, ray)) {
         case void => yield;
-        case let color: color =>
-            return color;
+        case let hit: hit_record =>
+            const lcf = (1.0 + vdot(hit.normal, scene.light_direction)) / 2.0;
+            return vsplat(lcf);
         };
     };
 
