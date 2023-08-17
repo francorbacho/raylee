@@ -54,6 +54,8 @@ fn hit_sphere(surface: **surface_vtable, ray: ray) (void | hit_record) = {
 
     if (distance < 0.0) {
         distance = (-b + math::sqrtf64(discriminant)) / (2.0 * a);
+        if (distance < 0.0)
+            return;
     };
 
     const where = rtravel(ray, distance);
