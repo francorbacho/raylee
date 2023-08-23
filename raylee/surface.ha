@@ -111,6 +111,11 @@ fn hit_compose(
         case void =>
             void;
         case let new_hit: hit_record =>
+            if (!new_hit.front_face) {
+                fmt::errorln("warn: Surface clipping")!;
+                continue;
+            };
+
             if (min_dist < new_hit.distance && new_hit.distance < closest_hit) {
                 closest_hit = new_hit.distance;
                 record = new_hit;
