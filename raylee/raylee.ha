@@ -34,7 +34,10 @@ export fn render(scene: scene) image = {
         yield tmp;
     };
 
-    let surfaces: []**surface_vtable = [&sphere(v3(0.0, 0.0, -1.0), 0.5)];
+    let surfaces = compose(
+        &sphere(v3(-1.0, 0.0, -1.0), 0.5),
+        &sphere(v3( 1.0, 0.0, -1.0), 0.5)
+    );
     let pixels: []color = [];
 
     for (let j = 0z; j < scene.height; j += 1) {
@@ -64,16 +67,12 @@ export fn render(scene: scene) image = {
     };
 };
 
-fn ray_color(scene: *scene, surfaces: []**surface_vtable, ray: ray) color = {
-    for (let i = 0z; i < len(surfaces); i += 1) {
-        let surface = surfaces[i];
-
-        match (surface.hit(surface, ray)) {
-        case void => yield;
-        case let hit: hit_record =>
-            const lcf = (1.0 + vdot(hit.normal, scene.light_direction)) / 2.0;
-            return vsplat(lcf);
-        };
+fn ray_color(scene: *scene, surface: surface_compose, ray: ray) color = {
+    match (hit_surface_compose(surface, ray)) {
+    case void => yield;
+    case let hit: hit_record =>
+        const lcf = (1.0 + vdot(hit.normal, scene.light_direction)) / 2.0;
+        return vsplat(lcf);
     };
 
     const direction_unit = ray.direction;

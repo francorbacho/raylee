@@ -14,10 +14,11 @@ export type hit_record = struct {
     where: point,
     normal: vector3,
     distance: f64,
+    front_face: bool,
 };
 
 export type surface_vtable = struct {
-    hit: *fn(**surface_vtable, ray) (void | hit_record),
+    hit: *fn(**surface_vtable, ray, f64, f64) (void | hit_record),
 };
 
 export type surface_sphere = struct {
@@ -38,7 +39,12 @@ export fn sphere(center: point, radius: f64) surface_sphere = {
     };
 };
 
-fn hit_sphere(surface: **surface_vtable, ray: ray) (void | hit_record) = {
+fn hit_sphere(
+    surface: **surface_vtable,
+    ray: ray,
+    min_dist: f64,
+    max_dist: f64
+) (void | hit_record) = {
     const sphere = surface: *surface_sphere;
 
     const oc = vsub(ray.origin, sphere.center);
@@ -50,20 +56,71 @@ fn hit_sphere(surface: **surface_vtable, ray: ray) (void | hit_record) = {
     if (discriminant < 0.0)
         return;
 
-    let distance = (-b - math::sqrtf64(discriminant)) / (2.0 * a);
+    const disc_sqrt = math::sqrtf64(discriminant);
 
-    if (distance < 0.0) {
-        distance = (-b + math::sqrtf64(discriminant)) / (2.0 * a);
-        if (distance < 0.0)
+    let distance = (-b - disc_sqrt) / (2.0 * a);
+    if (distance < min_dist || distance > max_dist) {
+        distance = (-b + disc_sqrt) / (2.0 * a);
+        if (distance < min_dist || distance > max_dist)
             return;
     };
 
     const where = rtravel(ray, distance);
     const normal = vunit(vsub(where, sphere.center));
+    const front_face = vdot(ray.direction, normal) < 0.0;
 
     return hit_record {
         where = where,
         distance = distance,
         normal = normal,
+        front_face = front_face,
     };
+};
+
+export type surface_compose = struct {
+    vtable: *surface_vtable,
+    surfaces: []**surface_vtable,
+};
+
+export const compose_vtable: surface_vtable = surface_vtable {
+    hit = &hit_compose,
+};
+
+export fn compose(surfaces: **surface_vtable...) surface_compose = {
+    const surfaces: []**surface_vtable = surfaces;
+
+    return surface_compose {
+        vtable = &compose_vtable,
+        surfaces = surfaces
+    };
+};
+
+fn hit_compose(
+    surface: **surface_vtable,
+    ray: ray,
+    min_dist: f64,
+    max_dist: f64,
+) (void | hit_record) = {
+    const compose = surface: *surface_compose;
+    let closest_hit = max_dist;
+    let record: (void | hit_record) = void;
+
+    for (let i = 0z; i < len(compose.surfaces); i += 1) {
+        const surface = compose.surfaces[i];
+        match (surface.hit(surface, ray, min_dist, closest_hit)) {
+        case void =>
+            void;
+        case let new_hit: hit_record =>
+            if (min_dist < new_hit.distance && new_hit.distance < closest_hit) {
+                closest_hit = new_hit.distance;
+                record = new_hit;
+            };
+        };
+    };
+
+    return record;
+};
+
+export fn hit_surface_compose(surface: surface_compose, ray: ray) (void | hit_record) = {
+    return hit_compose(&surface, ray, 0.0, math::INF);
 };
