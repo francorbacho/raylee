@@ -19,7 +19,7 @@ let _global_scene = raylee::scene { ... };
         height = height,
         camera = raylee::camera_settings {
             position = v3(0.0, 0.0, 0.0),
-            viewport_size = v3(viewport_width, viewport_height, 1.0),
+            viewport_size = v3(viewport_width, viewport_height, 0.0),
             focal_length = focal_length,
         },
         light_direction = vunit(v3(0.8, 0.3, 0.7)),

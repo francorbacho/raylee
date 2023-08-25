@@ -19,7 +19,7 @@ export const default_scene: scene = scene {
     height = 144,
     camera = camera_settings {
         position = point { ... },
-        viewport_size = vector3 { x = 3.555, y = 2.0, z= 1.0 },
+        viewport_size = vector3 { x = 3.555, y = 2.0, z = 0.0 },
         focal_length = 1.0,
     },
 

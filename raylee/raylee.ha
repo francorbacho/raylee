@@ -35,8 +35,8 @@ export fn render(scene: scene) image = {
     };
 
     let surfaces = compose(
-        &sphere(v3(-1.0, 0.0, -1.0), 0.5),
-        &sphere(v3( 1.0, 0.0, -1.0), 0.5)
+        &sphere(v3(-1.0, 0.0, -2.0), 0.5),
+        &sphere(v3( 1.0, 0.0, -2.0), 0.5)
     );
     let pixels: []color = [];
 
