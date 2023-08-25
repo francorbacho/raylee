@@ -35,8 +35,9 @@ export fn render(scene: scene) image = {
     };
 
     let surfaces = compose(
-        &sphere(v3(-1.0, 0.0, -2.0), 0.5),
-        &sphere(v3( 1.0, 0.0, -2.0), 0.5)
+        &sphere(v3(-1.0,    0.0, -2.0), 0.5),
+        &sphere(v3( 1.0,    0.0, -2.0), 0.5),
+        &sphere(v3( 0.0, -100.5, -1.0), 100.0),
     );
     let pixels: []color = [];
 
@@ -50,7 +51,7 @@ export fn render(scene: scene) image = {
             };
 
             const ray_ji = ray {
-                origin = pixel_ji,
+                origin = scene.camera.position,
                 direction = vunit(vsub(pixel_ji, scene.camera.position)),
             };
 
