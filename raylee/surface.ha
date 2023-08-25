@@ -1,7 +1,6 @@
 use raylee::math;
 use raylee::math::{
-    vector3, ray, point,
-    vsplat, v3,
+    vector3, ray, point, v3,
     vsub, vdot, vunit,
     rtravel,
 };

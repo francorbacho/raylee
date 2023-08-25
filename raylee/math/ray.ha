@@ -4,5 +4,5 @@ export type ray = struct {
 };
 
 export fn rtravel(ray: ray, v: f64) point = vadd(
-    ray.origin, vmul(ray.direction, vsplat(v))
+    ray.origin, vmul(ray.direction, v)
 );

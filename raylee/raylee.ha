@@ -29,7 +29,7 @@ export fn render(scene: scene) image = {
 
     const pixel_00 = {
         let tmp = viewport_coordinate_frame;
-        tmp = vdiv(tmp, vsplat(2.0));
+        tmp = vdiv(tmp, 2.0);
         tmp = vadd(tmp, viewport_topleft);
         yield tmp;
     };
@@ -56,7 +56,7 @@ export fn render(scene: scene) image = {
             };
 
             let color_ji = ray_color(&scene, surfaces, ray_ji);
-            color_ji = vmul(color_ji, vsplat(255.0));
+            color_ji = vmul(color_ji, 255.0);
             append(pixels, color_ji);
         };
     };
