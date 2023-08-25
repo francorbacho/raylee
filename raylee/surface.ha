@@ -112,7 +112,7 @@ fn hit_compose(
             void;
         case let new_hit: hit_record =>
             if (!new_hit.front_face) {
-                fmt::errorln("warn: Surface clipping")!;
+                fmt::errorln("warn: Camera clipping")!;
                 continue;
             };
 
