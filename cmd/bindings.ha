@@ -6,25 +6,7 @@ use raylee::math::{ v3, vunit };
 let _global_scene = raylee::scene { ... };
 
 @init fn init_global_scene() void = {
-    const width = 256u;
-    const height = 144u;
-    const aspect_ratio: f64 = width: f64 / height: f64;
-
-    const viewport_height = 2.0;
-    const viewport_width = aspect_ratio * viewport_height;
-    const focal_length = 1.0;
-
-    _global_scene = raylee::scene {
-        width = width,
-        height = height,
-        camera = raylee::camera_settings {
-            position = v3(0.0, 0.0, 0.0),
-            viewport_size = v3(viewport_width, viewport_height, 0.0),
-            focal_length = focal_length,
-        },
-        light_direction = vunit(v3(0.8, 0.3, 0.7)),
-        done = false,
-    };
+    _global_scene = raylee::default_scene;
 };
 
 fn global_scene() *raylee::scene = {
