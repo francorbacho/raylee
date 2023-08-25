@@ -34,11 +34,12 @@ export fn render(scene: scene) image = {
         yield tmp;
     };
 
-    let surfaces = compose(
+    scene.surfaces = compose(
         &sphere(v3(-1.0,    0.0, -2.0), 0.5),
         &sphere(v3( 1.0,    0.0, -2.0), 0.5),
         &sphere(v3( 0.0, -100.5, -1.0), 100.0),
     );
+
     let pixels: []color = [];
 
     for (let j = 0z; j < scene.height; j += 1) {
@@ -55,7 +56,7 @@ export fn render(scene: scene) image = {
                 direction = vunit(vsub(pixel_ji, scene.camera.position)),
             };
 
-            let color_ji = ray_color(&scene, surfaces, ray_ji);
+            let color_ji = ray_color(&scene, scene.surfaces, ray_ji);
             color_ji = vmul(color_ji, 255.0);
             append(pixels, color_ji);
         };

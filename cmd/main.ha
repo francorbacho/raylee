@@ -65,7 +65,7 @@ fn run_sdl(width: u32, height: u32) (void | fs::error | sdl2::error) = {
     defer free(state.surface);
 
     const before = time::now(time::clock::REALTIME);
-    const result: raylee::image = raylee::render(raylee::default_scene);
+    const result: raylee::image = raylee::render(raylee::default_scene());
     const after = time::now(time::clock::REALTIME);
     const took = time::diff(before, after) / 1e6;
 

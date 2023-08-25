@@ -3,14 +3,18 @@ use fmt;
 use raylee;
 use raylee::math::{ v3, vunit };
 
-let _global_scene = raylee::scene { ... };
+let _global_scene: (void | raylee::scene) = void;
 
 @init fn init_global_scene() void = {
-    _global_scene = raylee::default_scene;
+    _global_scene = raylee::default_scene();
 };
 
 fn global_scene() *raylee::scene = {
-    return &_global_scene;
+    match (_global_scene) {
+    case void => fmt::fatal("unreachable");
+    case let scene: raylee::scene =>
+        return &(_global_scene as raylee::scene);
+    };
 };
 
 fn set_camera_position(l: *lua::lua_State) void = {

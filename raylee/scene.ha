@@ -14,7 +14,15 @@ export type image = struct {
     pixels: []color,
 };
 
-export const default_scene: scene = scene {
+export type scene = struct {
+    width: u32, height: u32,
+    camera: camera_settings,
+    light_direction: vector3,
+    surfaces: surface_compose,
+    done: bool,
+};
+
+export fn default_scene() scene = scene {
     width = 256,
     height = 144,
     camera = camera_settings {
@@ -25,14 +33,8 @@ export const default_scene: scene = scene {
 
     light_direction = vector3 { x = 0.72, y = 0.27, z = 0.63 },
 
+    surfaces = compose(),
     done = false,
-};
-
-export type scene = struct {
-    width: u32, height: u32,
-    camera: camera_settings,
-    light_direction: vector3,
-    done: bool,
 };
 
 export type camera_settings = struct {
