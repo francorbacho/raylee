@@ -3,17 +3,21 @@ use fmt;
 use raylee;
 use raylee::math::{ v3, vunit };
 
-let _global_scene: (void | raylee::scene) = void;
+let _global_scene: nullable *raylee::scene = null;
 
 @init fn init_global_scene() void = {
-    _global_scene = raylee::default_scene();
+    _global_scene = alloc(raylee::default_scene());
+};
+
+@fini fn fini_global_scene() void = {
+    free(_global_scene);
 };
 
 fn global_scene() *raylee::scene = {
     match (_global_scene) {
-    case void => fmt::fatal("unreachable");
-    case let scene: raylee::scene =>
-        return &(_global_scene as raylee::scene);
+    case null => fmt::fatal("unreachable");
+    case let scene: *raylee::scene =>
+        return scene;
     };
 };
 
