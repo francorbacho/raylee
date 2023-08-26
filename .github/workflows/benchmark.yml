@@ -1,0 +1,56 @@
+name: Benchmark
+
+on:
+  push:
+    branches:
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: "recursive"
+
+      - name: Install dependencies
+        run: |
+          sudo apt update && sudo apt install -y lua5.4 liblua5.4-dev libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev bc
+
+      - name: Build and install qbe
+        run: |
+          git clone --depth 1 git://c9x.me/qbe.git
+          cd qbe
+          make
+          sudo make install
+
+      - name: Build and install scdoc
+        run: |
+          git clone --depth 1 https://git.sr.ht/~sircmpwn/scdoc
+          cd scdoc/
+          make
+          sudo make install
+
+      - name: Build and install harec
+        run: |
+          git clone --depth 1 https://git.sr.ht/~sircmpwn/harec
+          cd harec/
+          ./configure
+          make
+          sudo make install
+
+      - name: Build and install hare
+        run: |
+          git clone --depth 1 https://git.sr.ht/~sircmpwn/hare
+          cd hare/
+          cp config.example.mk config.mk
+          make
+          make check
+          sudo make install
+
+      - name: Build raylee
+        run: |
+          make
+
+      - name: Benchmark
+        run: |
+          ./assert-fast.sh
