@@ -3,6 +3,8 @@ use fs;
 use os;
 use io;
 
+use math::random;
+
 use raylee::math::{
     vector2, vector3, point, color,
     v3,
@@ -19,6 +21,10 @@ export type scene = struct {
     camera: camera_settings,
     light_direction: vector3,
     surfaces: surface_compose,
+
+    rng: random::random,
+    samples_per_pixel: uint,
+
     done: bool,
 };
 
@@ -32,8 +38,11 @@ export fn default_scene() scene = scene {
     },
 
     light_direction = vector3 { x = 0.72, y = 0.27, z = 0.63 },
-
     surfaces = compose(),
+
+    rng = 0: random::random,
+    samples_per_pixel = 10,
+
     done = false,
 };
 

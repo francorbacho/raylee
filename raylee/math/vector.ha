@@ -1,4 +1,5 @@
 use math;
+use math::random;
 
 export type vector3 = struct { x: f64, y: f64, z: f64 };
 export type point = vector3;
@@ -13,6 +14,12 @@ export fn intov3(value: implicitv3) vector3 = match (value) {
 case let vec: vector3 => return vec;
 case let val: f64 => return vsplat(val);
 };
+
+export fn randvec(random: *random::random) vector3 = v3(
+    random::f64rand(random),
+    random::f64rand(random),
+    random::f64rand(random),
+);
 
 export fn vadd(lhs: vector3, rhs: implicitv3) vector3 = {
     const rhs = intov3(rhs);

@@ -2,6 +2,7 @@ use raylee::math;
 use raylee::math::{
     color, vector3, point, ray,
     rgb, v3, vsplat,
+    randvec,
     vadd, vsub, vmul, vdiv, vdot, vunit,
     rtravel
 };
@@ -51,12 +52,21 @@ export fn render(scene: scene) image = {
                 yield tmp;
             };
 
-            const ray_ji = ray {
-                origin = scene.camera.position,
-                direction = vunit(vsub(pixel_ji, scene.camera.position)),
+            let color_ji = vsplat(0.0);
+            for (let k = 0z; k < scene.samples_per_pixel; k += 1) {
+                const random_pixel_offset = vmul(randvec(&scene.rng), viewport_coordinate_frame);
+                const pixel_jik = vadd(pixel_ji, random_pixel_offset);
+
+                let ray_jik = ray {
+                    origin = scene.camera.position,
+                    direction = vunit(vsub(pixel_jik, scene.camera.position)),
+                };
+
+                const color_jik = ray_color(&scene, scene.surfaces, ray_jik);
+                color_ji = vadd(color_ji, color_jik);
             };
 
-            let color_ji = ray_color(&scene, scene.surfaces, ray_ji);
+            color_ji = vmul(color_ji, 1.0 / scene.samples_per_pixel: f64);
             color_ji = vmul(color_ji, 255.0);
             append(pixels, color_ji);
         };
