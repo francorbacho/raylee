@@ -53,11 +53,11 @@ fn run_sdl(width: u32, height: u32) (void | fs::error | sdl2::error) = {
     )?;
 	defer sdl2::SDL_DestroyWindow(win);
 
-	const render = sdl2::SDL_CreateRenderer(win, -1, SDL_RendererFlags::NONE)?;
-	defer sdl2::SDL_DestroyRenderer(render);
+	const renderer = sdl2::SDL_CreateRenderer(win, -1, SDL_RendererFlags::NONE)?;
+	defer sdl2::SDL_DestroyRenderer(renderer);
 
     let state = windowing_state {
-        render = render,
+        renderer = renderer,
         window_width = window_width,
         window_height = window_height,
         ...
@@ -91,7 +91,7 @@ fn run_sdl(width: u32, height: u32) (void | fs::error | sdl2::error) = {
 
     surface.pixels = &pixels[0];
 
-    let texture = sdl2::SDL_CreateTextureFromSurface(state.render, surface)?;
+    let texture = sdl2::SDL_CreateTextureFromSurface(state.renderer, surface)?;
 
     state.surface = surface;
     state.texture = texture;
@@ -119,15 +119,15 @@ fn draw(state: *windowing_state) (void | sdl2::error) = {
     case let texture: *sdl2::SDL_Texture => yield texture;
     };
 
-    sdl2::SDL_RenderClear(state.render)?;
-    sdl2::SDL_RenderCopy(state.render, texture, null, &sdl2::SDL_Rect {
+    sdl2::SDL_RenderClear(state.renderer)?;
+    sdl2::SDL_RenderCopy(state.renderer, texture, null, &sdl2::SDL_Rect {
 		x = 0,
 		y = 0,
 		w = state.window_width,
 		h = state.window_height,
 	})?;
 
-    sdl2::SDL_RenderPresent(state.render);
+    sdl2::SDL_RenderPresent(state.renderer);
 };
 
 fn run_lua_script(script_path: str) void = {
