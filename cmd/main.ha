@@ -7,6 +7,7 @@ use path;
 use time;
 use getopt;
 use strconv;
+use log;
 
 use raylee;
 use raylee::math::{ v3, point };
@@ -22,6 +23,15 @@ use lua;
 
 def MAX_FRAME_COUNT = 1000z;
 
+type config = struct {
+    width: u32, height: u32,
+    samples_per_pixel: u32,
+    window: (void | *sdl2::SDL_Window),
+
+    headless: bool,
+    script: (void | str),
+};
+
 type windowing_state = struct {
     done: bool,
     window_width: int,
@@ -34,27 +44,37 @@ type windowing_state = struct {
 export fn main() void = {
     const cmd = getopt::parse(os::args,
         "simple raytracer",
+        ('v', "verbose"),
         ('w', "width", "width of the raytraced image (default: 768)"),
         ('h', "height", "height of the raytraced image (default: 432)"),
         "files..."
     );
     defer getopt::finish(&cmd);
 
-    let width: u32 = 768;
-    let height: u32 = 432;
+    let config = config {
+        width = 768, height = 432,
+        samples_per_pixel = 5,
+        headless = false,
+        script = void,
+        window = void,
+    };
+
+    log::setlogger(log::silent);
 
     for (let i = 0z; i < len(cmd.opts); i += 1) {
         let opt = cmd.opts[i];
         switch (opt.0) {
+        case 'v' =>
+            log::setlogger(log::default);
         case 'w' =>
-            width = match (strconv::stou32(opt.1)) {
+            config.width = match (strconv::stou32(opt.1)) {
             case let v: u32 => yield v;
             case strconv::overflow => abort();
             case strconv::invalid =>
                 fmt::fatalf("cannot parse width {}: is invalid", opt.1);
             };
         case 'h' =>
-            height = match (strconv::stou32(opt.1)) {
+            config.height = match (strconv::stou32(opt.1)) {
             case let v: u32 => yield v;
             case strconv::overflow => abort();
             case strconv::invalid =>
@@ -65,33 +85,30 @@ export fn main() void = {
         };
     };
 
-    if (len(cmd.args) == 0) {
-        fmt::printfln("image resolution set to {}x{}", width, height)!;
-        run_sdl(width, height)!;
-        return;
-    };
-
-    run_lua_script(os::args[1]);
-};
-
-type config = struct {
-    width: u32, height: u32,
-    samples_per_pixel: u32,
-    window: (void | *sdl2::SDL_Window),
-
-    headless: bool,
-    script: (void | str),
+    run(config)!;
 };
 
 def WINDOW_WIDTH: int = 720;
 // Window height is determined at via its ratio.
 
 fn run(config: config) (void | sdl2::error) = {
+    log::printfln("dumping config...");
+    log::printfln("resolution :: {}x{}", config.width, config.height);
+    log::printfln("samples pp :: {}", config.samples_per_pixel);
+    log::printfln("headless :: {}", config.headless);
+    log::printfln("script :: {}", match (config.script) {
+        case void => yield "no";
+        case let script: str => yield script;
+    });
+
     if (!config.headless) {
         const ratio = config.height: f64 / config.width: f64;
         const window_height = (ratio * WINDOW_WIDTH: f64): int;
 
+        log::println("[sdl2] initializing sdl2");
         sdl2::SDL_Init(sdl2::SDL_INIT_VIDEO)?;
+
+        log::printfln("[sdl2] creating window with size: {}x{}", WINDOW_WIDTH, window_height);
         config.window = sdl2::SDL_CreateWindow("raylee",
             sdl2::SDL_WINDOWPOS_UNDEFINED, sdl2::SDL_WINDOWPOS_UNDEFINED,
             WINDOW_WIDTH, window_height, SDL_WindowFlags::NONE
