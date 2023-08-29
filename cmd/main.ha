@@ -1,4 +1,5 @@
 use os;
+use os::exec;
 use strings;
 use fmt;
 use io;
@@ -103,117 +104,67 @@ fn run(config: config) (void | sdl2::error) = {
     });
 
     if (!config.headless) {
-        const ratio = config.height: f64 / config.width: f64;
-        const window_width = WINDOW_WIDTH;
-        const window_height = (ratio * window_width: f64): int;
-
-        log::println("[sdl2] initializing sdl2");
-        sdl2::SDL_Init(sdl2::SDL_INIT_VIDEO)?;
-
-        log::printfln("[sdl2] creating window with size: {}x{}", window_width, window_height);
-        const window = sdl2::SDL_CreateWindow("raylee",
-            sdl2::SDL_WINDOWPOS_UNDEFINED, sdl2::SDL_WINDOWPOS_UNDEFINED,
-            window_width, window_height, SDL_WindowFlags::NONE
-        )?;
-
-        const renderer = sdl2::SDL_CreateRenderer(window, -1, SDL_RendererFlags::NONE)?;
-        defer sdl2::SDL_DestroyRenderer(renderer);
-
-        config.windowing_state = windowing_state {
-            window_width = window_width,
-            window_height = window_height,
-            window = window,
-            renderer = renderer,
-            surface = null,
-            texture = null,
-        };
-    };
-
-    defer if (!config.headless) {
-        let ws = match (config.windowing_state) {
-        case void => abort();
-        case let ws: windowing_state => yield ws;
+        match (os::exec::fork()) {
+        case void => void;
+        case let p: os::exec::process =>
+            return run_sdl(config)!;
+        case let e: os::exec::error =>
+            log::fatalf("error forking process: {}", os::exec::strerror(e));
         };
 
-        sdl2::SDL_DestroyWindow(ws.window);
-        sdl2::SDL_DestroyRenderer(ws.renderer);
-        sdl2::SDL_Quit();
+        return;
     };
 };
 
-fn run_sdl(width: u32, height: u32) (void | fs::error | sdl2::error) = {
-    const factor = 4;
+fn run_sdl(config: config) (void | sdl2::error) = {
+    const ratio = config.height: f64 / config.width: f64;
+    const window_width = WINDOW_WIDTH;
+    const window_height = (ratio * window_width: f64): int;
 
-    const window_width = 800;
-    const window_height = (window_width: f64 * height: f64 / width: f32): int;
-
+    log::println("[sdl2] initializing sdl2");
     sdl2::SDL_Init(sdl2::SDL_INIT_VIDEO)?;
     defer sdl2::SDL_Quit();
 
-	const win = sdl2::SDL_CreateWindow("raylee",
-		sdl2::SDL_WINDOWPOS_UNDEFINED, sdl2::SDL_WINDOWPOS_UNDEFINED,
+    log::printfln("[sdl2] creating window with size: {}x{}", window_width, window_height);
+    const window = sdl2::SDL_CreateWindow("raylee",
+        sdl2::SDL_WINDOWPOS_UNDEFINED, sdl2::SDL_WINDOWPOS_UNDEFINED,
         window_width, window_height, SDL_WindowFlags::NONE
     )?;
-	defer sdl2::SDL_DestroyWindow(win);
+    defer sdl2::SDL_DestroyWindow(window);
 
-	const renderer = sdl2::SDL_CreateRenderer(win, -1, SDL_RendererFlags::NONE)?;
-	defer sdl2::SDL_DestroyRenderer(renderer);
+    const renderer = sdl2::SDL_CreateRenderer(window, -1, SDL_RendererFlags::NONE)?;
+    defer sdl2::SDL_DestroyRenderer(renderer);
 
-    let state = windowing_state {
-        window = win,
-        renderer = renderer,
+    const windowing_state = windowing_state {
         window_width = window_width,
         window_height = window_height,
-        ...
-    };
-    defer free(state.surface);
-
-    const before = time::now(time::clock::REALTIME);
-    const result: raylee::image = raylee::render(raylee::default_scene());
-    const after = time::now(time::clock::REALTIME);
-    const took = time::diff(before, after) / 1e6;
-
-    fmt::errorf("raytracing took {} ms\n", took)!;
-
-    let surface = sdl2::SDL_CreateRGBSurface(
-        0,
-        result.width: int, result.height: int,
-        32, 0, 0, 0, 0,
-    )?;
-
-    let pixels: []u32 = [];
-
-    for (let i = 0z; i < result.width * result.height; i += 1) {
-        let color = result.pixels[i];
-        let r = color.x: u32;
-        let g = color.y: u32;
-        let b = color.z: u32;
-
-        let color: u32 = (r << 16) | (g << 8) | b;
-        append(pixels, color);
+        window = window,
+        renderer = renderer,
+        surface = null,
+        texture = null,
     };
 
-    surface.pixels = &pixels[0];
+    let done = false;
 
-    let texture = sdl2::SDL_CreateTextureFromSurface(state.renderer, surface)?;
+    for (!done) {
+        log::println("frame");
 
-    state.surface = surface;
-    state.texture = texture;
+        done = update(&windowing_state)?;
+        draw(&windowing_state)?;
 
-	for (true) {
-        update(&state)?;
-        draw(&state)?;
-		sdl2::SDL_Delay(1000 / 30);
-	};
+        time::sleep(10 * time::MILLISECOND);
+    };
 };
 
-fn update(state: *windowing_state) (void | sdl2::error) = {
+fn update(state: *windowing_state) (bool | sdl2::error) = {
 	let ev = sdl2::event { ... };
 	for (sdl2::SDL_PollEvent(&ev)? == 1) switch (ev.event_type) {
 	case SDL_EventType::QUIT =>
-		abort();
+		return true;
 	case => void;
 	};
+
+    return false;
 };
 
 fn draw(state: *windowing_state) (void | sdl2::error) = {
