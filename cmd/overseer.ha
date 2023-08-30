@@ -69,31 +69,31 @@ fn run_sdl(config: config) (void | sdl2::error) = {
     };
 
     const socket = match (ev::listen_tcp(&loop, ip::LOCAL_V4, PORT)) {
-	case let err: net::error =>
-		log::fatalf("Error: listen: {}", net::strerror(err));
-	case let err: errors::error =>
-		log::fatalf("Error: listen: {}", errors::strerror(err));
-	case let socket: *ev::file =>
-		yield socket;
+    case let err: net::error =>
+        log::fatalf("Error: listen: {}", net::strerror(err));
+    case let err: errors::error =>
+        log::fatalf("Error: listen: {}", errors::strerror(err));
+    case let socket: *ev::file =>
+        yield socket;
     };
     defer ev::close(socket);
 
-	const timer = ev::newtimer(&loop, &update_sdl, time::clock::MONOTONIC)!;
-	ev::timer_configure(timer, 30 * time::MILLISECOND, 30 * time::MILLISECOND);
+    const timer = ev::newtimer(&loop, &update_sdl, time::clock::MONOTONIC)!;
+    ev::timer_configure(timer, 30 * time::MILLISECOND, 30 * time::MILLISECOND);
     ev::setuser(timer, &rt_state);
 
     const sig = ev::signal(&loop, &signal, signal::sig::INT, signal::sig::TERM)!;
-	defer ev::close(sig);
+    defer ev::close(sig);
     ev::setuser(sig, &rt_state);
 
     for (ev::dispatch(&loop, -1)!) void;
 };
 
 fn signal(file: *ev::file, sig: signal::sig) void = {
-	log::printfln("Exiting due to {}", signal::signame(sig));
+    log::printfln("Exiting due to {}", signal::signame(sig));
 
-	const rt_state = ev::getuser(file): *rt_state;
-	ev::stop(rt_state.loop);
+    const rt_state = ev::getuser(file): *rt_state;
+    ev::stop(rt_state.loop);
 };
 
 fn update_sdl(file: *ev::file) void = {
@@ -107,12 +107,12 @@ fn update_sdl(file: *ev::file) void = {
 };
 
 fn update(state: *windowing_state) (bool | sdl2::error) = {
-	let ev = sdl2::event { ... };
-	for (sdl2::SDL_PollEvent(&ev)? == 1) switch (ev.event_type) {
-	case SDL_EventType::QUIT =>
-		return true;
-	case => void;
-	};
+    let ev = sdl2::event { ... };
+    for (sdl2::SDL_PollEvent(&ev)? == 1) switch (ev.event_type) {
+    case SDL_EventType::QUIT =>
+        return true;
+    case => void;
+    };
 
     return false;
 };
@@ -125,11 +125,11 @@ fn draw(state: *windowing_state) (void | sdl2::error) = {
 
     sdl2::SDL_RenderClear(state.renderer)?;
     sdl2::SDL_RenderCopy(state.renderer, texture, null, &sdl2::SDL_Rect {
-		x = 0,
-		y = 0,
-		w = state.window_width,
-		h = state.window_height,
-	})?;
+        x = 0,
+        y = 0,
+        w = state.window_width,
+        h = state.window_height,
+    })?;
 
     sdl2::SDL_RenderPresent(state.renderer);
 };
