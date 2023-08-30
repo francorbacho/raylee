@@ -1,4 +1,5 @@
 use errors;
+use fmt;
 use log;
 use net;
 use net::ip;
@@ -20,6 +21,7 @@ type rt_state = struct {
     loop: *ev::loop,
     config: *config,
     windowing_state: *windowing_state,
+    success: bool,
 };
 
 type windowing_state = struct {
@@ -66,6 +68,7 @@ fn run_sdl(config: config) (void | sdl2::error) = {
         loop = &loop,
         config = &config,
         windowing_state = &windowing_state,
+        success = true,
     };
 
     const socket = match (ev::listen_tcp(&loop, ip::LOCAL_V4, PORT)) {
@@ -77,6 +80,8 @@ fn run_sdl(config: config) (void | sdl2::error) = {
         yield socket;
     };
     defer ev::close(socket);
+    ev::setuser(socket, &rt_state);
+    ev::accept(socket, &on_new_connection);
 
     const timer = ev::newtimer(&loop, &update_sdl, time::clock::MONOTONIC)!;
     ev::timer_configure(timer, 30 * time::MILLISECOND, 30 * time::MILLISECOND);
@@ -87,6 +92,25 @@ fn run_sdl(config: config) (void | sdl2::error) = {
     ev::setuser(sig, &rt_state);
 
     for (ev::dispatch(&loop, -1)!) void;
+
+    if (!rt_state.success)
+        fmt::fatalf("error");
+};
+
+fn on_new_connection(file: *ev::file, r: (*ev::file | net::error)) void = {
+    let rt_state = ev::getuser(file): *rt_state;
+    const socket = match (r) {
+    case let socket: *ev::file => yield socket;
+    case let err: net::error =>
+          log::printfln("[inet] error: accept: {}", net::strerror(err));
+          ev::stop(rt_state.loop);
+          rt_state.success = false;
+          return;
+    };
+
+    const file = ev::getfd(socket);
+    const (addr, port) = tcp::peeraddr(file) as (ip::addr, u16);
+    log::printfln("[inet] new connection from {}:{}", ip::string(addr), port);
 };
 
 fn signal(file: *ev::file, sig: signal::sig) void = {
