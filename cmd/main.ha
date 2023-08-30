@@ -9,9 +9,16 @@ use time;
 use getopt;
 use strconv;
 use log;
+use errors;
+use net;
+use net::ip;
+use net::tcp;
+use unix::signal;
 
 use raylee;
 use raylee::math::{ v3, point };
+
+use ev;
 
 use sdl2;
 use sdl2::image;
@@ -24,6 +31,20 @@ use sdl2::{
 use lua;
 
 def MAX_FRAME_COUNT = 1000z;
+def PORT: u16 = 8221;
+
+type task = enum {
+    // e.i. server
+    overseer = 0b01,
+    // e.i. client
+    worker   = 0b10,
+    both     = 0b11,
+};
+
+type rt_state = struct {
+    config: *config,
+    loop: *ev::loop,
+};
 
 type config = struct {
     width: u32, height: u32,
@@ -31,6 +52,7 @@ type config = struct {
     windowing_state: (void | windowing_state),
     headless: bool,
     script: (void | str),
+    task: task,
 };
 
 type windowing_state = struct {
@@ -59,6 +81,7 @@ export fn main() void = {
         headless = false,
         script = void,
         windowing_state = void,
+        task = task::overseer,
     };
 
     log::setlogger(log::silent);
@@ -94,26 +117,53 @@ def WINDOW_WIDTH: int = 720;
 // Window height is determined at via its ratio.
 
 fn run(config: config) (void | sdl2::error) = {
-    log::printfln("dumping config...");
-    log::printfln("resolution :: {}x{}", config.width, config.height);
-    log::printfln("samples pp :: {}", config.samples_per_pixel);
-    log::printfln("headless :: {}", config.headless);
-    log::printfln("script :: {}", match (config.script) {
+    log::printfln("[conf] dumping config...");
+    log::printfln("[conf] resolution :: {}x{}", config.width, config.height);
+    log::printfln("[conf] samples pp :: {}", config.samples_per_pixel);
+    log::printfln("[conf] headless :: {}", config.headless);
+    log::printfln("[conf] script :: {}", match (config.script) {
         case void => yield "no";
         case let script: str => yield script;
     });
+    log::printfln("[conf] task :: {}", switch (config.task) {
+        case task::overseer => yield "overseer";
+        case task::worker => yield "worker";
+    });
+
+    if (config.headless && config.task == task::overseer) {
+        // XXX: Allow this?
+        fmt::fatalf("cannot run overseer as headless mode");
+    };
 
     if (!config.headless) {
         match (os::exec::fork()) {
-        case void => void;
+        case void =>
+            config.task = task::worker;
         case let p: os::exec::process =>
+            config.task = task::overseer;
             return run_sdl(config)!;
         case let e: os::exec::error =>
             log::fatalf("error forking process: {}", os::exec::strerror(e));
         };
-
-        return;
     };
+
+    assert(config.task == task::worker);
+    run_worker(config);
+};
+
+fn run_worker(config: config) void = {
+    let scene = global_scene();
+
+    log::println("[work] starting work on scene...");
+    let before = time::now(time::clock::MONOTONIC);
+    let img = raylee::render(*scene);
+    let after = time::now(time::clock::MONOTONIC);
+
+    const MS_IN_S = 1e3;
+    const NS_IN_S = 1e9;
+
+    let duration_ms = time::diff(before, after) * MS_IN_S / NS_IN_S;
+    log::printfln("[work] work on the scene ended in {}", duration_ms);
 };
 
 fn run_sdl(config: config) (void | sdl2::error) = {
@@ -135,7 +185,7 @@ fn run_sdl(config: config) (void | sdl2::error) = {
     const renderer = sdl2::SDL_CreateRenderer(window, -1, SDL_RendererFlags::NONE)?;
     defer sdl2::SDL_DestroyRenderer(renderer);
 
-    const windowing_state = windowing_state {
+    config.windowing_state = windowing_state {
         window_width = window_width,
         window_height = window_height,
         window = window,
@@ -146,14 +196,59 @@ fn run_sdl(config: config) (void | sdl2::error) = {
 
     let done = false;
 
-    for (!done) {
-        log::println("frame");
+    let loop = ev::newloop()!;
+    defer ev::finish(&loop);
 
-        done = update(&windowing_state)?;
-        draw(&windowing_state)?;
-
-        time::sleep(10 * time::MILLISECOND);
+    let rt_state = rt_state {
+        config = &config,
+        loop = &loop,
     };
+
+    const socket = match (ev::listen_tcp(&loop, ip::LOCAL_V4, PORT)) {
+	case let err: net::error =>
+		log::fatalf("Error: listen: {}", net::strerror(err));
+	case let err: errors::error =>
+		log::fatalf("Error: listen: {}", errors::strerror(err));
+	case let socket: *ev::file =>
+		yield socket;
+    };
+    defer ev::close(socket);
+
+	const timer = ev::newtimer(&loop, &update_sdl, time::clock::MONOTONIC)!;
+	ev::timer_configure(timer, 30 * time::MILLISECOND, 30 * time::MILLISECOND);
+    ev::setuser(timer, &rt_state);
+
+    const sig = ev::signal(&loop, &signal, signal::sig::INT, signal::sig::TERM)!;
+	defer ev::close(sig);
+    ev::setuser(sig, &rt_state);
+
+    for (!done) {
+        done = !ev::dispatch(&loop, 50 * time::MILLISECOND)!;
+    };
+};
+
+fn signal(file: *ev::file, sig: signal::sig) void = {
+	log::printfln("Exiting due to {}", signal::signame(sig));
+
+	const rt_state = ev::getuser(file): *rt_state;
+	ev::stop(rt_state.loop);
+};
+
+fn update_sdl(file: *ev::file) void = {
+    const rt_state = ev::getuser(file): *rt_state;
+
+    log::println("frame");
+
+    let ws = match (rt_state.config.windowing_state) {
+        case void => abort();
+        case let ws: windowing_state => yield ws;
+    };
+
+    if (update(&ws)!) {
+        ev::stop(rt_state.loop);
+    };
+
+    draw(&ws)!;
 };
 
 fn update(state: *windowing_state) (bool | sdl2::error) = {
