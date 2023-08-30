@@ -1,9 +1,12 @@
 use errors;
 use fmt;
+use io;
 use log;
 use net;
 use net::ip;
 use net::tcp;
+use os;
+use strings;
 use time;
 use unix::signal;
 
@@ -17,9 +20,12 @@ use sdl2::{
     SDL_Surface, SDL_Texture, SDL_Renderer,
 };
 
+def BUFSIZE: size = 400;
+
 type rt_state = struct {
     loop: *ev::loop,
     config: *config,
+    socket: *ev::file,
     windowing_state: *windowing_state,
     success: bool,
 };
@@ -31,6 +37,14 @@ type windowing_state = struct {
     renderer: *SDL_Renderer,
     surface: nullable *SDL_Surface,
     texture: nullable *SDL_Texture,
+};
+
+type worker_connection = struct {
+    rt_state: *rt_state,
+    socket: *ev::file,
+    addr: ip::addr,
+    port: u16,
+    buf: [BUFSIZE]u8,
 };
 
 fn run_sdl(config: config) (void | sdl2::error) = {
@@ -64,12 +78,7 @@ fn run_sdl(config: config) (void | sdl2::error) = {
     let loop = ev::newloop()!;
     defer ev::finish(&loop);
 
-    let rt_state = rt_state {
-        loop = &loop,
-        config = &config,
-        windowing_state = &windowing_state,
-        success = true,
-    };
+    log::println("[inet] listening on port", PORT);
 
     const socket = match (ev::listen_tcp(&loop, ip::LOCAL_V4, PORT)) {
     case let err: net::error =>
@@ -80,6 +89,15 @@ fn run_sdl(config: config) (void | sdl2::error) = {
         yield socket;
     };
     defer ev::close(socket);
+
+    let rt_state = rt_state {
+        loop = &loop,
+        config = &config,
+        windowing_state = &windowing_state,
+        socket = socket,
+        success = true,
+    };
+
     ev::setuser(socket, &rt_state);
     ev::accept(socket, &on_new_connection);
 
@@ -110,7 +128,48 @@ fn on_new_connection(file: *ev::file, r: (*ev::file | net::error)) void = {
 
     const file = ev::getfd(socket);
     const (addr, port) = tcp::peeraddr(file) as (ip::addr, u16);
+
     log::printfln("[inet] new connection from {}:{}", ip::string(addr), port);
+
+    const conn = alloc(worker_connection {
+        rt_state = rt_state,
+        socket = socket,
+        addr = addr,
+        port = port,
+        ...
+    });
+    ev::setuser(socket, conn);
+    ev::read(socket, &on_worker_submit, conn.buf);
+
+    ev::accept(rt_state.socket, &on_new_connection);
+};
+
+fn on_worker_submit(file: *ev::file, r: (size | io::EOF | io::error)) void = {
+    const worker_conn = ev::getuser(file): *worker_connection;
+    ev::read(worker_conn.socket, &on_worker_submit, worker_conn.buf);
+
+    const n = match (r) {
+    case let n: size =>
+        yield n;
+    case io::EOF =>
+        worker_connection_close(worker_conn);
+        return;
+    case let err: io::error =>
+        log::printfln("[inet] error with connection: {}", io::strerror(err));
+        worker_connection_close(worker_conn);
+        return;
+    };
+
+    const buf = worker_conn.buf[..n];
+    const buf = strings::fromutf8(buf)!;
+
+    log::printfln("[inet] client says: {}", buf);
+};
+
+fn worker_connection_close(conn: *worker_connection) void = {
+    log::printfln("[inet] connection {}:{} closed", ip::string(conn.addr), conn.port);
+    ev::close(conn.socket);
+    free(conn);
 };
 
 fn signal(file: *ev::file, sig: signal::sig) void = {
