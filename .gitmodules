@@ -4,3 +4,6 @@
 [submodule "third-party/hare-lua"]
 	path = third-party/hare-lua
 	url = https://github.com/francorbacho/hare-lua.git
+[submodule "third-party/hare-ev"]
+	path = third-party/hare-ev
+	url = https://git.sr.ht/~sircmpwn/hare-ev
