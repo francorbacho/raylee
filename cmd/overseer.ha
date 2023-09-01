@@ -194,25 +194,39 @@ fn on_worker_submit(file: *ev::file, r: (size | io::EOF | io::error)) void = {
 
         const colors = dataptr: *[*]color;
         const colors: []color = colors[..colors_len];
+        // XXX: We leak memory here.
+        const buf = alloc([0u32...], len(colors));
 
-        fmt::printfln("first byte recved is {:x}", dataptr[0])!;
-        fmt::printfln("first byte recved is {:x}", dataptr[1])!;
-        fmt::printfln("first byte recved is {:x}", dataptr[2])!;
-        fmt::printfln("first byte recved is {:x}", dataptr[3])!;
-        fmt::printfln("first byte recved is {:x}", dataptr[4])!;
-        fmt::printfln("first byte recved is {:x}", dataptr[5])!;
-        fmt::printfln("first byte recved is {:x}", dataptr[6])!;
-        fmt::printfln("first byte recved is {:x}", dataptr[7])!;
-
-        const first_color = colors[0];
-        // const last_color = colors[len(colors) - 1]: math::vector3;
-
-        log::printfln("[overs] data is {} bytes", len(data));
-        log::printfln("colors is {} len (should be {})", len(colors), colors_len);
-
-        log::printfln("[overs] first color is {},{},{}", first_color.x, first_color.y, first_color.z);
-        // log::printfln("last  color is {},{},{}", last_color.x, last_color.y, last_color.z);
+        // DON'T
+        const surf = copy_to_surface(colors, buf, 256, 144);
+        const ws = worker_conn.rt_state.windowing_state;
+        ws.surface = surf;
+        ws.texture = sdl2::SDL_CreateTextureFromSurface(ws.renderer, surf)!;
     };
+};
+
+fn copy_to_surface(colors: []color, pixels: []u32, width: int, height: int) *sdl2::SDL_Surface = {
+    let surface = sdl2::SDL_CreateRGBSurface(
+        0,
+        width, height,
+        32, 0, 0, 0, 0,
+    )!;
+
+    assert(len(pixels): int == width * height);
+
+    for (let i = 0z; i < len(pixels); i += 1) {
+        let color = colors[i];
+        let r = color.x: u32;
+        let g = color.y: u32;
+        let b = color.z: u32;
+
+        let color: u32 = (r << 16) | (g << 8) | b;
+        pixels[i] = color;
+    };
+
+    surface.pixels = &pixels[0];
+
+    return surface;
 };
 
 fn worker_connection_close(conn: *worker_connection) void = {

@@ -58,20 +58,9 @@ fn send_region(socket: io::file, img: *raylee::image) void = {
     // FIXME: Remove this.
     assert(first_pixel_byte == expected_first_byte);
 
-    fmt::printfln("first color is : {},{},{}", img.pixels[0].x, img.pixels[0].y, img.pixels[0].z)!;
+    let last_color = img.pixels[len(img.pixels) - 1];
 
-    fmt::printfln("expected_first_byte: {:x}", expected_first_byte)!;
-    fmt::printfln("  actual_first_byte: {:x}", first_pixel_byte)!;
-    fmt::println()!;
-
-    fmt::printfln("byte: {:x}", color_bytes[0])!;
-    fmt::printfln("byte: {:x}", color_bytes[1])!;
-    fmt::printfln("byte: {:x}", color_bytes[2])!;
-    fmt::printfln("byte: {:x}", color_bytes[3])!;
-    fmt::printfln("byte: {:x}", color_bytes[4])!;
-    fmt::printfln("byte: {:x}", color_bytes[5])!;
-    fmt::printfln("byte: {:x}", color_bytes[6])!;
-    fmt::printfln("byte: {:x}", color_bytes[7])!;
+    fmt::printfln("last color is : {},{},{}", last_color.x, last_color.y, last_color.z)!;
 
     for (let i = 0z; i < color_bytes_amount; i += 1) {
         write(socket, [color_bytes[i]]);
