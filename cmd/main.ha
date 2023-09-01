@@ -36,8 +36,8 @@ export fn main() void = {
     const cmd = getopt::parse(os::args,
         "simple raytracer",
         ('v', "verbose"),
-        ('w', "width", "width of the raytraced image (default: 256)"),
-        ('h', "height", "height of the raytraced image (default: 144)"),
+        ('W', "width", "width of the raytraced image (default: 256)"),
+        ('H', "height", "height of the raytraced image (default: 144)"),
         ('s', "samples", "samples per pixel (default: 5)"),
         "files..."
     );
@@ -58,14 +58,14 @@ export fn main() void = {
         switch (opt.0) {
         case 'v' =>
             log::setlogger(log::default);
-        case 'w' =>
+        case 'W' =>
             config.width = match (strconv::stou32(opt.1)) {
             case let v: u32 => yield v;
             case strconv::overflow => abort();
             case strconv::invalid =>
                 fmt::fatalf("cannot parse width {}: is invalid", opt.1);
             };
-        case 'h' =>
+        case 'H' =>
             config.height = match (strconv::stou32(opt.1)) {
             case let v: u32 => yield v;
             case strconv::overflow => abort();
