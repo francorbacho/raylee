@@ -18,7 +18,7 @@ fn run_worker(config: config) void = {
     const task = config.task as worker;
 
     // XXX: Don't do this.
-    time::sleep(150 * time::MILLISECOND);
+    time::sleep(1500 * time::MILLISECOND);
 
     let connection = tcp::connect(ip::LOCAL_V4, PORT)!;
     let scene = global_scene();
@@ -28,6 +28,7 @@ fn run_worker(config: config) void = {
     scene.samples_per_pixel = config.samples_per_pixel;
 
     log::println("[work] starting work on scene...");
+    log::printfln("[work] my job is {}x{}::{}x{}", task.region.x1, task.region.y1, task.region.x2, task.region.y2);
     let before = time::now(time::clock::MONOTONIC);
     let img = raylee::render(*scene, task.region);
     let after = time::now(time::clock::MONOTONIC);
