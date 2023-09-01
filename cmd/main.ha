@@ -144,7 +144,7 @@ fn run(config: config) void = {
     const height = task.region.y2 - task.region.y1;
     const height_per_region = height / config.numworkers: f32;
 
-    for (let i = 0z; i < config.numworkers - 1; i += 1) {
+    for (let i = 0z; i < config.numworkers; i += 1) {
         match (os::exec::fork()) {
         case void =>
             let buf: [128]u8 = [0...];
@@ -165,12 +165,9 @@ fn run(config: config) void = {
         };
     };
 
-
-    task.region.y1 = task.region.y1 + height_per_region * (config.numworkers - 1): f32;
-    task.region.y2 = task.region.y1 + height_per_region;
-    config.task = task;
-
-    run_worker(config);
+    // FIXME: Output is still getting overlapped.
+    const log_follower = exec::cmd("sh", "-c", "tail -f /tmp/raylee-worker-*.dump")!;
+    exec::exec(&log_follower);
 };
 
 fn taskstr(task: task) str = match (task) {

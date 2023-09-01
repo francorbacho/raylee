@@ -41,6 +41,8 @@ fn run_worker(config: config) void = {
     log::printfln("[work] work on the scene ended in {} ms", duration_ms);
 
     send_region(connection, &img);
+
+    log::println("[work] i am done");
 };
 
 fn send_region(socket: io::file, img: *raylee::image) void = {
