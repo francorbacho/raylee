@@ -1,3 +1,4 @@
+use bytes;
 use errors;
 use fmt;
 use io;
@@ -6,6 +7,7 @@ use net;
 use net::ip;
 use net::tcp;
 use os;
+use strconv;
 use strings;
 use time;
 use unix::signal;
@@ -20,7 +22,11 @@ use sdl2::{
     SDL_Surface, SDL_Texture, SDL_Renderer,
 };
 
-def BUFSIZE: size = 400;
+use raylee;
+use raylee::math;
+use raylee::math::{color};
+
+def BUFSIZE: size = 8096;
 
 type rt_state = struct {
     loop: *ev::loop,
@@ -44,7 +50,9 @@ type worker_connection = struct {
     socket: *ev::file,
     addr: ip::addr,
     port: u16,
+    sent: size,
     buf: [BUFSIZE]u8,
+    wbuf: []u8,
 };
 
 fn run_sdl(config: config) (void | sdl2::error) = {
@@ -136,6 +144,8 @@ fn on_new_connection(file: *ev::file, r: (*ev::file | net::error)) void = {
         socket = socket,
         addr = addr,
         port = port,
+        // XXX: Hare does not allow allocating empty arrays.
+        wbuf = alloc([0]),
         ...
     });
     ev::setuser(socket, conn);
@@ -160,15 +170,55 @@ fn on_worker_submit(file: *ev::file, r: (size | io::EOF | io::error)) void = {
         return;
     };
 
-    const buf = worker_conn.buf[..n];
-    const buf = strings::fromutf8(buf)!;
+    append(worker_conn.wbuf,  worker_conn.buf[..n]...);
+    worker_conn.sent += n;
 
-    log::printfln("[inet] client says: {}", buf);
+    if (bytes::contains(worker_conn.buf, &SUBMIT)) {
+        const buf = worker_conn.wbuf;
+        const (zero, rest) = bytes::cut(buf, &HELO);
+        assert(bytes::equal(zero, [0]));
+
+        const (dimensions, rest) = bytes::cut(rest, '\n');
+
+        const dimensions = strings::fromutf8(dimensions)!;
+        const (width, height) = strings::cut(dimensions, " ");
+
+        const width = strconv::stoi(width)!;
+        const height = strconv::stoi(height)!;
+
+        const data: []u8 = bytes::rtrim(rest, &SUBMIT...);
+        const dataptr = &data[0]: *[*]u8;
+        const colors_len = (width * height): size;
+
+        assert(colors_len == len(data) * size(u8) / size(color));
+
+        const colors = dataptr: *[*]color;
+        const colors: []color = colors[..colors_len];
+
+        fmt::printfln("first byte recved is {:x}", dataptr[0])!;
+        fmt::printfln("first byte recved is {:x}", dataptr[1])!;
+        fmt::printfln("first byte recved is {:x}", dataptr[2])!;
+        fmt::printfln("first byte recved is {:x}", dataptr[3])!;
+        fmt::printfln("first byte recved is {:x}", dataptr[4])!;
+        fmt::printfln("first byte recved is {:x}", dataptr[5])!;
+        fmt::printfln("first byte recved is {:x}", dataptr[6])!;
+        fmt::printfln("first byte recved is {:x}", dataptr[7])!;
+
+        const first_color = colors[0];
+        // const last_color = colors[len(colors) - 1]: math::vector3;
+
+        log::printfln("[overs] data is {} bytes", len(data));
+        log::printfln("colors is {} len (should be {})", len(colors), colors_len);
+
+        log::printfln("[overs] first color is {},{},{}", first_color.x, first_color.y, first_color.z);
+        // log::printfln("last  color is {},{},{}", last_color.x, last_color.y, last_color.z);
+    };
 };
 
 fn worker_connection_close(conn: *worker_connection) void = {
     log::printfln("[inet] connection {}:{} closed", ip::string(conn.addr), conn.port);
     ev::close(conn.socket);
+    free(conn.wbuf);
     free(conn);
 };
 

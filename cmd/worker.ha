@@ -1,13 +1,28 @@
 use fmt;
+use io;
 use log;
+use net;
+use net::ip;
+use net::tcp;
+use strings;
 use time;
 
 use lua;
 
 use raylee;
+use raylee::math;
+use raylee::math::{color};
 
 fn run_worker(config: config) void = {
+    // XXX: Don't do this.
+    time::sleep(150 * time::MILLISECOND);
+
+    let connection = tcp::connect(ip::LOCAL_V4, PORT)!;
     let scene = global_scene();
+
+    scene.width = config.width;
+    scene.height = config.height;
+    scene.samples_per_pixel = config.samples_per_pixel;
 
     log::println("[work] starting work on scene...");
     let before = time::now(time::clock::MONOTONIC);
@@ -19,6 +34,58 @@ fn run_worker(config: config) void = {
 
     let duration_ms = time::diff(before, after) * MS_IN_S / NS_IN_S;
     log::printfln("[work] work on the scene ended in {} ms", duration_ms);
+
+    send_region(connection, &img);
+};
+
+fn send_region(socket: io::file, img: *raylee::image) void = {
+    log::printfln("[work] sending region...");
+
+    let tmpbuf: [128]u8 = [0...];
+    const line = fmt::bsprintf(tmpbuf, "{} {}\n", img.width, img.height);
+    const buf = strings::toutf8(line);
+
+    write(socket, &HELO);
+    write(socket, buf);
+
+    const color_bytes_amount = len(img.pixels) * size(color) / size(u8);
+    const color_bytes = &img.pixels[0]: *[*]u8;
+    const color_bytes: []u8 = color_bytes[..color_bytes_amount];
+
+    const expected_first_byte = *(&img.pixels[0]: *u8);
+    const first_pixel_byte = color_bytes[0];
+
+    // FIXME: Remove this.
+    assert(first_pixel_byte == expected_first_byte);
+
+    fmt::printfln("first color is : {},{},{}", img.pixels[0].x, img.pixels[0].y, img.pixels[0].z)!;
+
+    fmt::printfln("expected_first_byte: {:x}", expected_first_byte)!;
+    fmt::printfln("  actual_first_byte: {:x}", first_pixel_byte)!;
+    fmt::println()!;
+
+    fmt::printfln("byte: {:x}", color_bytes[0])!;
+    fmt::printfln("byte: {:x}", color_bytes[1])!;
+    fmt::printfln("byte: {:x}", color_bytes[2])!;
+    fmt::printfln("byte: {:x}", color_bytes[3])!;
+    fmt::printfln("byte: {:x}", color_bytes[4])!;
+    fmt::printfln("byte: {:x}", color_bytes[5])!;
+    fmt::printfln("byte: {:x}", color_bytes[6])!;
+    fmt::printfln("byte: {:x}", color_bytes[7])!;
+
+    for (let i = 0z; i < color_bytes_amount; i += 1) {
+        write(socket, [color_bytes[i]]);
+    };
+
+    write(socket, &SUBMIT);
+};
+
+fn write(socket: io::file, buf: []u8) void = {
+    match (io::write(socket, buf)) {
+    case size => void;
+    case let e: io::error =>
+        log::printfln("[work] write: {}", io::strerror(e));
+    };
 };
 
 fn run_lua_script(script_path: str) void = {

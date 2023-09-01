@@ -38,7 +38,7 @@ export fn main() void = {
     defer getopt::finish(&cmd);
 
     let config = config {
-        width = 768, height = 432,
+        width = 256, height = 144,
         samples_per_pixel = 5,
         headless = false,
         script = void,

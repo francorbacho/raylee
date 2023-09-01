@@ -1,0 +1,5 @@
+// The return value of `strings::toutf8("HELO\n")`.
+def HELO: [_]u8 = [0x48, 0x45, 0x4c, 0x4f, 0x0a];
+
+// The return value of `strings::toutf8("SUBMIT\n")`.
+def SUBMIT: [_]u8 = [0x53, 0x55, 0x42, 0x4d, 0x49, 0x54, 0x0a];

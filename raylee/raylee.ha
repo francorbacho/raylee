@@ -41,7 +41,10 @@ export fn render(scene: scene) image = {
         &sphere(v3( 0.0, -100.5, -1.0), 100.0),
     );
 
-    let pixels: []color = [];
+    // TODO: Move this to raylee::color::*
+    const black: color = rgb(0.0, 0.0, 0.0);
+
+    let pixels: []color = alloc([black...], scene.width * scene.height);
 
     for (let j = 0z; j < scene.height; j += 1) {
         for (let i = 0z; i < scene.width; i += 1) {
@@ -68,7 +71,9 @@ export fn render(scene: scene) image = {
 
             color_ji = vmul(color_ji, 1.0 / scene.samples_per_pixel: f64);
             color_ji = vmul(color_ji, 255.0);
-            append(pixels, color_ji);
+
+            const ji = j * scene.width + i;
+            pixels[ji] = color_ji;
         };
     };
 
