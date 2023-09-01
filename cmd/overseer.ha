@@ -210,6 +210,13 @@ fn on_worker_submit(file: *ev::file, r: (size | io::EOF | io::error)) void = {
 
         const ws = worker_conn.rt_state.windowing_state;
         copy_to_surface(ws, colors, width, height);
+
+        match (ws.texture) {
+        case let t: *SDL_Texture =>
+            sdl2::SDL_DestroyTexture(t);
+        case null => void;
+        };
+
         ws.texture = sdl2::SDL_CreateTextureFromSurface(ws.renderer, ws.surface)!;
     };
 };
@@ -257,6 +264,7 @@ fn update_sdl(file: *ev::file) void = {
 
     if (update(rt_state.windowing_state)!) {
         ev::stop(rt_state.loop);
+        return;
     };
 
     draw(rt_state.windowing_state)!;
