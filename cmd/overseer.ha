@@ -232,7 +232,9 @@ fn copy_to_surface(ws: *windowing_state, colors: []color, width: int, height: in
         let b = color.z: u32;
 
         let color: u32 = (r << 16) | (g << 8) | b;
-        pixels[i] = color;
+        if (color != 0) {
+            pixels[i] = color;
+        };
     };
 };
 
