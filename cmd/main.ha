@@ -9,8 +9,6 @@ use raylee;
 use raylee::{ region };
 use raylee::math::{ v3, point };
 
-use time;
-
 def WHOLE_REGION: region = region { x1 = 0.0, y1 = 0.0, x2 = 1.0, y2 = 1.0 };
 def HALF_WIDTH: region = region { x1 = 0.5, y1 = 0.0, x2 = 1.0, y2 = 1.0 };
 
@@ -157,8 +155,6 @@ fn run(config: config) void = {
         case let e: os::exec::error =>
             log::fatalf("error forking process: {}", os::exec::strerror(e));
         };
-
-        time::sleep(1000 * time::MILLISECOND);
     };
 
 
