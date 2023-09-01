@@ -1,4 +1,5 @@
 use fmt;
+use fs;
 use getopt;
 use log;
 use os;
@@ -146,6 +147,13 @@ fn run(config: config) void = {
     for (let i = 0z; i < config.numworkers - 1; i += 1) {
         match (os::exec::fork()) {
         case void =>
+            let buf: [128]u8 = [0...];
+            let buf = fmt::bsprintf(buf, "/tmp/raylee-worker-{:02}.dump", i);
+            let handle = os::create(buf, fs::mode::USER_RW, fs::flag::WRONLY)!;
+            let logger = log::new(handle);
+
+            log::setlogger(&logger);
+
             task.region.y1 = task.region.y1 + height_per_region * i: f32;
             task.region.y2 = task.region.y1 + height_per_region;
             config.task = task;
