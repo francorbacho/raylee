@@ -82,8 +82,8 @@ export fn main() void = {
     run(config);
 };
 
+// Window height is determined at runtime keeping the same aspect ratio.
 def WINDOW_WIDTH: int = 720;
-// Window height is determined at via its ratio.
 
 fn run(config: config) void = {
     log::printfln("[conf] dumping config...");
