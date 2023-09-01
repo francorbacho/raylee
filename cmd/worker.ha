@@ -13,6 +13,11 @@ use raylee;
 use raylee::math;
 use raylee::math::{color};
 
+type worker_state = struct {
+    config: *config,
+    l: *lua::lua_State,
+};
+
 fn run_worker(config: config) void = {
     assert(config.task is worker);
     const task = config.task as worker;
@@ -28,8 +33,23 @@ fn run_worker(config: config) void = {
     scene.height = config.height;
     scene.samples_per_pixel = config.samples_per_pixel;
 
+    const l = init_lua();
+    defer lua::lua_close(l);
+
+    let state = worker_state {
+        config = &config,
+        l = l,
+    };
+
     log::println("[work] starting work on scene...");
     log::printfln("[work] my job is {}x{}::{}x{}", task.region.x1, task.region.y1, task.region.x2, task.region.y2);
+
+    if (config.script is str) {
+        const script_path = config.script as str;
+        lua::luaL_loadfile(l, script_path)!;
+        dispatch_lua(l, 0, 0);
+    };
+
     let before = time::now(time::clock::MONOTONIC);
     let img = raylee::render(*scene, task.region);
     let after = time::now(time::clock::MONOTONIC);
@@ -78,9 +98,8 @@ fn write(socket: io::file, buf: []u8) void = {
     };
 };
 
-fn run_lua_script(script_path: str) void = {
+fn init_lua() *lua::lua_State = {
     let l = lua::luaL_newstate();
-    defer lua::lua_close(l);
     lua::luaL_openlibs(l);
 
     const raylee_funcs = [
@@ -94,29 +113,7 @@ fn run_lua_script(script_path: str) void = {
     lua::luaL_setfuncs(l, raylee_funcs, 0);
     lua::lua_setglobal(l, "raylee");
 
-    lua::luaL_loadfile(l, script_path)!;
-    dispatch_lua(l, 0, 0);
-
-    let scene = global_scene();
-    log::printfln("scene is {}x{}", scene.width, scene.height);
-
-    for (let i = 0z; i < MAX_FRAME_COUNT && !scene.done; i += 1) {
-        let img = raylee::render(*scene, WHOLE_REGION);
-        let buffer: [64]u8 = [0...];
-        let path = fmt::bsprintf(buffer, "target/render{:03}.ppm", i);
-        raylee::save_to_file(img, path);
-
-        match (lua::lua_getglobal(l, "update")) {
-        case void => void;
-        case lua::errerr => void; // for some reason ok?
-        case let err: lua::error => abort();
-        };
-
-        lua::lua_pushinteger(l, i: int);
-        dispatch_lua(l, 1, 0);
-
-        lua::lua_pop(l, lua::lua_gettop(l));
-    };
+    return l;
 };
 
 fn dispatch_lua(l: *lua::lua_State, nargs: int, nret: int) void = {

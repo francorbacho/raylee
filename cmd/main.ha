@@ -1,10 +1,12 @@
 use fmt;
 use fs;
 use getopt;
+use io;
 use log;
 use os;
 use os::exec;
 use strconv;
+use strings;
 
 use raylee;
 use raylee::{ region };
@@ -42,7 +44,7 @@ export fn main() void = {
         ('W', "width", "width of the raytraced image (default: 256)"),
         ('H', "height", "height of the raytraced image (default: 144)"),
         ('s', "samples", "samples per pixel (default: 5)"),
-        "files..."
+        "[file]"
     );
     defer getopt::finish(&cmd);
 
@@ -93,6 +95,12 @@ export fn main() void = {
         case =>
             fmt::fatalf("bad opt: {}", opt.0);
         };
+    };
+
+    if (len(cmd.args) == 1) {
+        config.script = cmd.args[0];
+    } else if (len(cmd.args) > 1) {
+        fmt::fatalf("Only one script can be specified");
     };
 
     run(config);
