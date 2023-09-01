@@ -31,8 +31,9 @@ export fn main() void = {
     const cmd = getopt::parse(os::args,
         "simple raytracer",
         ('v', "verbose"),
-        ('w', "width", "width of the raytraced image (default: 768)"),
-        ('h', "height", "height of the raytraced image (default: 432)"),
+        ('w', "width", "width of the raytraced image (default: 256)"),
+        ('h', "height", "height of the raytraced image (default: 144)"),
+        ('s', "samples", "samples per pixel (default: 5)"),
         "files..."
     );
     defer getopt::finish(&cmd);
@@ -65,6 +66,13 @@ export fn main() void = {
             case strconv::overflow => abort();
             case strconv::invalid =>
                 fmt::fatalf("cannot parse height {}: is invalid", opt.1);
+            };
+        case 's' =>
+            config.samples_per_pixel = match (strconv::stou32(opt.1)) {
+            case let v: u32 => yield v;
+            case strconv::overflow => abort();
+            case strconv::invalid =>
+                fmt::fatalf("cannot parse samples {}: is invalid", opt.1);
             };
         case =>
             fmt::fatalf("bad opt: {}", opt.0);
