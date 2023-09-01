@@ -17,8 +17,9 @@ fn run_worker(config: config) void = {
     assert(config.task is worker);
     const task = config.task as worker;
 
-    // XXX: Don't do this.
-    time::sleep(1500 * time::MILLISECOND);
+    // XXX: We need to wait here to give time to the overseer program to start
+    //      accepting connections.
+    time::sleep(100 * time::MILLISECOND);
 
     let connection = tcp::connect(ip::LOCAL_V4, PORT)!;
     let scene = global_scene();
