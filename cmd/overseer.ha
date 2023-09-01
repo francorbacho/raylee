@@ -41,7 +41,7 @@ type windowing_state = struct {
     window_height: int,
     window: *SDL_Window,
     renderer: *SDL_Renderer,
-    surface: nullable *SDL_Surface,
+    surface: *SDL_Surface,
     texture: nullable *SDL_Texture,
 };
 
@@ -74,12 +74,23 @@ fn run_sdl(config: config) (void | sdl2::error) = {
     const renderer = sdl2::SDL_CreateRenderer(window, -1, SDL_RendererFlags::NONE)?;
     defer sdl2::SDL_DestroyRenderer(renderer);
 
+    const surface = sdl2::SDL_CreateRGBSurface(
+        0,
+        config.width: int, config.height: int,
+        32, 0, 0, 0, 0,
+    )!;
+
+    const buf = alloc([0u32...], config.width * config.height);
+    defer free(buf);
+
+    surface.pixels = &buf[0];
+
     const windowing_state = windowing_state {
         window_width = window_width,
         window_height = window_height,
         window = window,
         renderer = renderer,
-        surface = null,
+        surface = surface,
         texture = null,
     };
 
@@ -194,24 +205,23 @@ fn on_worker_submit(file: *ev::file, r: (size | io::EOF | io::error)) void = {
 
         const colors = dataptr: *[*]color;
         const colors: []color = colors[..colors_len];
-        // XXX: We leak memory here.
-        const buf = alloc([0u32...], len(colors));
 
-        const surf = copy_to_surface(colors, buf, width, height);
         const ws = worker_conn.rt_state.windowing_state;
-        ws.surface = surf;
-        ws.texture = sdl2::SDL_CreateTextureFromSurface(ws.renderer, surf)!;
+        copy_to_surface(ws, colors, width, height);
+        ws.texture = sdl2::SDL_CreateTextureFromSurface(ws.renderer, ws.surface)!;
     };
 };
 
-fn copy_to_surface(colors: []color, pixels: []u32, width: int, height: int) *sdl2::SDL_Surface = {
-    let surface = sdl2::SDL_CreateRGBSurface(
-        0,
-        width, height,
-        32, 0, 0, 0, 0,
-    )!;
+fn copy_to_surface(ws: *windowing_state, colors: []color, width: int, height: int) void = {
+    assert(ws.surface.w == width);
+    assert(ws.surface.h == height);
 
-    assert(len(pixels): int == width * height);
+    const pixels = match (ws.surface.pixels) {
+    case null => abort();
+    case let p: *opaque => yield p: *[*]u32;
+    };
+
+    const pixels = pixels[..width * height];
 
     for (let i = 0z; i < len(pixels); i += 1) {
         let color = colors[i];
@@ -222,10 +232,6 @@ fn copy_to_surface(colors: []color, pixels: []u32, width: int, height: int) *sdl
         let color: u32 = (r << 16) | (g << 8) | b;
         pixels[i] = color;
     };
-
-    surface.pixels = &pixels[0];
-
-    return surface;
 };
 
 fn worker_connection_close(conn: *worker_connection) void = {
