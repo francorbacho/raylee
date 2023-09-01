@@ -58,10 +58,7 @@ fn send_region(socket: io::file, img: *raylee::image) void = {
     // FIXME: Remove this.
     assert(first_pixel_byte == expected_first_byte);
 
-    for (let i = 0z; i < color_bytes_amount; i += 1) {
-        write(socket, [color_bytes[i]]);
-    };
-
+    write(socket, color_bytes);
     write(socket, &SUBMIT);
     log::printfln("[work] region sent");
 };
