@@ -197,8 +197,7 @@ fn on_worker_submit(file: *ev::file, r: (size | io::EOF | io::error)) void = {
         // XXX: We leak memory here.
         const buf = alloc([0u32...], len(colors));
 
-        // DON'T
-        const surf = copy_to_surface(colors, buf, 256, 144);
+        const surf = copy_to_surface(colors, buf, width, height);
         const ws = worker_conn.rt_state.windowing_state;
         ws.surface = surf;
         ws.texture = sdl2::SDL_CreateTextureFromSurface(ws.renderer, surf)!;
