@@ -6,18 +6,23 @@ use os::exec;
 use strconv;
 
 use raylee;
+use raylee::{ region };
 use raylee::math::{ v3, point };
+
+def WHOLE_REGION: region = region { x1 = 0.0, y1 = 0.0, x2 = 1.0, y2 = 1.0 };
+def HALF_WIDTH: region = region { x1 = 0.5, y1 = 0.0, x2 = 1.0, y2 = 1.0 };
 
 def MAX_FRAME_COUNT = 1000z;
 def PORT: u16 = 8221;
 
-type task = enum {
-    // e.i. server
-    overseer = 0b01,
-    // e.i. client
-    worker   = 0b10,
-    both     = 0b11,
+// e.i. server
+type overseer = void;
+// e.i. client
+type worker = struct {
+    region: region,
 };
+
+type task = (overseer | worker);
 
 type config = struct {
     width: u32, height: u32,
@@ -43,7 +48,7 @@ export fn main() void = {
         samples_per_pixel = 5,
         headless = false,
         script = void,
-        task = task::overseer,
+        task = overseer,
     };
 
     log::setlogger(log::silent);
@@ -94,12 +99,12 @@ fn run(config: config) void = {
         case void => yield "no";
         case let script: str => yield script;
     });
-    log::printfln("[conf] task :: {}", switch (config.task) {
-        case task::overseer => yield "overseer";
-        case task::worker => yield "worker";
+    log::printfln("[conf] task :: {}", match (config.task) {
+        case overseer => yield "overseer";
+        case worker => yield "worker";
     });
 
-    if (config.headless && config.task == task::overseer) {
+    if (config.headless && config.task is overseer) {
         // XXX: Allow this?
         fmt::fatalf("cannot run overseer as headless mode");
     };
@@ -107,15 +112,14 @@ fn run(config: config) void = {
     if (!config.headless) {
         match (os::exec::fork()) {
         case void =>
-            config.task = task::worker;
+            config.task = worker { region = HALF_WIDTH };
         case let p: os::exec::process =>
-            config.task = task::overseer;
+            config.task = overseer;
             return run_sdl(config)!;
         case let e: os::exec::error =>
             log::fatalf("error forking process: {}", os::exec::strerror(e));
         };
     };
 
-    assert(config.task == task::worker);
     run_worker(config);
 };

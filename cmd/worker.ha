@@ -14,6 +14,9 @@ use raylee::math;
 use raylee::math::{color};
 
 fn run_worker(config: config) void = {
+    assert(config.task is worker);
+    const task = config.task as worker;
+
     // XXX: Don't do this.
     time::sleep(150 * time::MILLISECOND);
 
@@ -26,7 +29,7 @@ fn run_worker(config: config) void = {
 
     log::println("[work] starting work on scene...");
     let before = time::now(time::clock::MONOTONIC);
-    let img = raylee::render(*scene);
+    let img = raylee::render(*scene, task.region);
     let after = time::now(time::clock::MONOTONIC);
 
     const MS_IN_S = 1e3;
@@ -94,7 +97,7 @@ fn run_lua_script(script_path: str) void = {
     log::printfln("scene is {}x{}", scene.width, scene.height);
 
     for (let i = 0z; i < MAX_FRAME_COUNT && !scene.done; i += 1) {
-        let img = raylee::render(*scene);
+        let img = raylee::render(*scene, WHOLE_REGION);
         let buffer: [64]u8 = [0...];
         let path = fmt::bsprintf(buffer, "target/render{:03}.ppm", i);
         raylee::save_to_file(img, path);

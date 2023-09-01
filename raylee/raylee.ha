@@ -11,7 +11,18 @@ use math;
 
 use fmt;
 
-export fn render(scene: scene) image = {
+// Values are percentages.
+export type region = struct {
+    x1: f32, y1: f32,
+    x2: f32, y2: f32,
+};
+
+export fn render(scene: scene, region: region) image = {
+    assert(0.0f32 <= region.x1 && region.x1 <= 1.0f32);
+    assert(0.0f32 <= region.y1 && region.y1 <= 1.0f32);
+    assert(region.x1 <= region.x2 && region.x2 <= 1.0f32);
+    assert(region.y1 <= region.y2 && region.y2 <= 1.0f32);
+
     const viewport_size = scene.camera.viewport_size;
     const viewport_coordinate_frame = {
         let tmp = vdiv(viewport_size, v3(scene.width: f64, scene.height: f64, 1.0));
@@ -46,8 +57,13 @@ export fn render(scene: scene) image = {
 
     let pixels: []color = alloc([black...], scene.width * scene.height);
 
-    for (let j = 0z; j < scene.height; j += 1) {
-        for (let i = 0z; i < scene.width; i += 1) {
+    const from_x = (region.x1 * scene.width: f32): size;
+    const from_y = (region.y1 * scene.height: f32): size;
+    const to_x   = (region.x2 * scene.width: f32): size;
+    const to_y   = (region.y2 * scene.height: f32): size;
+
+    for (let j = from_y; j < to_y; j += 1) {
+        for (let i = from_x; i < to_x; i += 1) {
             const pixel_ji = {
                 let tmp = viewport_coordinate_frame;
                 tmp = vmul(tmp, v3(i: f64, j: f64, 0.0));

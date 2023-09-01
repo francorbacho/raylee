@@ -56,6 +56,8 @@ type worker_connection = struct {
 };
 
 fn run_sdl(config: config) (void | sdl2::error) = {
+    assert(config.task is overseer);
+
     const ratio = config.height: f64 / config.width: f64;
     const window_width = WINDOW_WIDTH;
     const window_height = (ratio * window_width: f64): int;
