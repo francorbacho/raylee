@@ -87,7 +87,6 @@ export fn render(scene: scene, region: region) image = {
             color_ji = vmul(color_ji, 1.0 / scene.samples_per_pixel: f64);
             color_ji = vmul(color_ji, 255.0);
 
-            const ji = j * scene.width + i;
             pixels[pixel_idx] = color_ji;
             pixel_idx += 1z;
         };
