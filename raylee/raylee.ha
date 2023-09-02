@@ -11,12 +11,6 @@ use math;
 
 use fmt;
 
-// Values are percentages.
-export type region = struct {
-    x1: f32, y1: f32,
-    x2: f32, y2: f32,
-};
-
 export fn render(scene: scene, region: region) image = {
     assert(0.0f32 <= region.x1 && region.x1 <= 1.0f32);
     assert(0.0f32 <= region.y1 && region.y1 <= 1.0f32);
@@ -57,10 +51,11 @@ export fn render(scene: scene, region: region) image = {
 
     let pixels: []color = alloc([black...], scene.width * scene.height);
 
-    const from_x = (region.x1 * scene.width: f32): size;
-    const from_y = (region.y1 * scene.height: f32): size;
-    const to_x   = (region.x2 * scene.width: f32): size;
-    const to_y   = (region.y2 * scene.height: f32): size;
+    const region = calc_pixels_from_region(region, scene.width, scene.height);
+    const from_x = region.x1;
+    const from_y = region.y1;
+    const to_x = region.x2;
+    const to_y = region.y2;
 
     for (let j = from_y; j < to_y; j += 1) {
         for (let i = from_x; i < to_x; i += 1) {
