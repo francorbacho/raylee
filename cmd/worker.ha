@@ -50,19 +50,27 @@ fn run_worker(config: config) void = {
         dispatch_lua(l, 0, 0);
     };
 
-    let before = time::now(time::clock::MONOTONIC);
-    let img = raylee::render(*scene, task.region);
-    let after = time::now(time::clock::MONOTONIC);
-
     const MS_IN_S = 1e3;
     const NS_IN_S = 1e9;
+    const MAX_FRAMES = 5z;
 
-    let duration_ms = time::diff(before, after) * MS_IN_S / NS_IN_S;
-    log::printfln("[work] work on the scene ended in {} ms", duration_ms);
+    for (let i = 0z; i < MAX_FRAMES; i += 1) {
+        if (scene.done)
+            break;
 
-    send_region(connection, &img, task.region);
+        log::println("[work] starting work on frame...");
 
-    log::println("[work] i am done");
+        let before = time::now(time::clock::MONOTONIC);
+        let img = raylee::render(*scene, task.region);
+        let after = time::now(time::clock::MONOTONIC);
+
+        let duration_ms = time::diff(before, after) * MS_IN_S / NS_IN_S;
+        log::printfln("[work] work on the scene ended in {} ms", duration_ms);
+        send_region(connection, &img, task.region);
+        time::sleep(3 * time::SECOND);
+    };
+
+    log::println("[work] done");
 };
 
 fn send_region(socket: io::file, img: *raylee::image, region: raylee::region) void = {

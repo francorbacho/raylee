@@ -210,6 +210,9 @@ fn on_worker_submit(file: *ev::file, r: (size | io::EOF | io::error)) void = {
         const pixels_len = (width * height): size;
         const pixels_received = len(data) * size(u8) / size(color);
 
+        if (pixels_len != pixels_received) {
+            fmt::printfln("received {} but expected {}", pixels_received, pixels_len)!;
+        };
         assert(pixels_len == pixels_received);
 
         const colors = &data[0]: *[*]color;
@@ -226,6 +229,10 @@ fn on_worker_submit(file: *ev::file, r: (size | io::EOF | io::error)) void = {
         };
 
         ws.texture = sdl2::SDL_CreateTextureFromSurface(ws.renderer, ws.surface)!;
+        free(worker_conn.wbuf);
+        worker_conn.wbuf = alloc([0]);
+
+        bytes::zero(worker_conn.buf);
     };
 };
 
