@@ -60,16 +60,18 @@ fn run_worker(config: config) void = {
     let duration_ms = time::diff(before, after) * MS_IN_S / NS_IN_S;
     log::printfln("[work] work on the scene ended in {} ms", duration_ms);
 
-    send_region(connection, &img);
+    send_region(connection, &img, task.region);
 
     log::println("[work] i am done");
 };
 
-fn send_region(socket: io::file, img: *raylee::image) void = {
+fn send_region(socket: io::file, img: *raylee::image, region: raylee::region) void = {
     log::printfln("[work] sending region...");
 
+    const region = raylee::calc_pixels_from_region(region, img.width, img.height);
+
     let tmpbuf: [128]u8 = [0...];
-    const line = fmt::bsprintf(tmpbuf, "{} {}\n", img.width, img.height);
+    const line = fmt::bsprintf(tmpbuf, "{} {} {} {}\n", region.x1, region.y1, region.x2, region.y2);
     const buf = strings::toutf8(line);
 
     write(socket, &HELO);

@@ -191,25 +191,33 @@ fn on_worker_submit(file: *ev::file, r: (size | io::EOF | io::error)) void = {
         const (zero, rest) = bytes::cut(buf, &HELO);
         assert(bytes::equal(zero, [0]));
 
-        const (dimensions, rest) = bytes::cut(rest, '\n');
+        const (region, rest) = bytes::cut(rest, '\n');
 
-        const dimensions = strings::fromutf8(dimensions)!;
-        const (width, height) = strings::cut(dimensions, " ");
+        const region = strings::fromutf8(region)!;
+        const (x1, region) = strings::cut(region, " ");
+        const (y1, region) = strings::cut(region, " ");
+        const (x2, y2) = strings::cut(region, " ");
 
-        const width = strconv::stoi(width)!;
-        const height = strconv::stoi(height)!;
+        const x1 = strconv::stoz(x1)!;
+        const y1 = strconv::stoz(y1)!;
+        const x2 = strconv::stoz(x2)!;
+        const y2 = strconv::stoz(y2)!;
+
+        const width = x2 - x1;
+        const height = y2 - y1;
 
         const data: []u8 = bytes::rtrim(rest, &SUBMIT...);
-        const dataptr = &data[0]: *[*]u8;
-        const colors_len = (width * height): size;
+        const pixels_len = (width * height): size;
+        const pixels_received = len(data) * size(u8) / size(color);
 
-        assert(colors_len == len(data) * size(u8) / size(color));
+        assert(pixels_len == pixels_received);
 
-        const colors = dataptr: *[*]color;
-        const colors: []color = colors[..colors_len];
+        const colors = &data[0]: *[*]color;
+        const colors: []color = colors[..pixels_len];
 
         const ws = worker_conn.rt_state.windowing_state;
-        copy_to_surface(ws, colors, width, height);
+        const region = raylee::dregion { x1 = x1, y1 = y1, x2 = x2, y2 = y2 };
+        copy_to_surface(ws, colors, region);
 
         match (ws.texture) {
         case let t: *SDL_Texture =>
@@ -221,26 +229,40 @@ fn on_worker_submit(file: *ev::file, r: (size | io::EOF | io::error)) void = {
     };
 };
 
-fn copy_to_surface(ws: *windowing_state, colors: []color, width: int, height: int) void = {
-    assert(ws.surface.w == width);
-    assert(ws.surface.h == height);
+fn copy_to_surface(ws: *windowing_state, colors: []color, region: raylee::dregion) void = {
+    const w = ws.surface.w: size;
+    const h = ws.surface.h: size;
 
     const pixels = match (ws.surface.pixels) {
     case null => abort();
     case let p: *opaque => yield p: *[*]u32;
     };
 
-    const pixels = pixels[..width * height];
+    const pixels = pixels[..w * h];
 
-    for (let i = 0z; i < len(pixels); i += 1) {
-        let color = colors[i];
-        let r = color.x: u32;
-        let g = color.y: u32;
-        let b = color.z: u32;
+    const from_x = region.x1;
+    const from_y = region.y1;
+    const to_x = region.x2;
+    const to_y = region.y2;
 
-        let color: u32 = (r << 16) | (g << 8) | b;
-        if (color != 0) {
-            pixels[i] = color;
+    const region_w = to_x - from_x;
+    const region_h = to_y - from_y;
+
+    assert(len(colors) == region_w * region_h);
+
+    let ci = 0z;
+    for (let j = from_y; j < to_y; j += 1) {
+        for (let i = from_x; i < to_x; i += 1) {
+            const color = colors[ci];
+            ci += 1;
+
+            const r = color.x: u32;
+            const g = color.y: u32;
+            const b = color.z: u32;
+            const color: u32 = (r << 16) | (g << 8) | b;
+
+            const ji = j * w + i;
+            pixels[ji] = color;
         };
     };
 };
