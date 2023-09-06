@@ -172,7 +172,12 @@ fn run(config: config) void = {
             log::setlogger(&logger);
 
             task.region.y1 = task.region.y1 + height_per_region * i: f32;
-            task.region.y2 = task.region.y1 + height_per_region;
+
+            // NOTE: This is due to floating point arithmetic errors.
+            if (i != config.numworkers - 1) {
+                task.region.y2 = task.region.y1 + height_per_region;
+            };
+
             config.task = task;
             run_worker(config);
             return;
