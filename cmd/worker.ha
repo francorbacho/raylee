@@ -52,7 +52,7 @@ fn run_worker(config: config) void = {
 
     const MS_IN_S = 1e3;
     const NS_IN_S = 1e9;
-    const MAX_FRAMES = 5z;
+    const MAX_FRAMES = 1000z;
 
     for (let i = 0z; i < MAX_FRAMES; i += 1) {
         if (scene.done)
@@ -67,7 +67,17 @@ fn run_worker(config: config) void = {
         let duration_ms = time::diff(before, after) * MS_IN_S / NS_IN_S;
         log::printfln("[work] work on the scene ended in {} ms", duration_ms);
         send_region(connection, &img, task.region);
-        time::sleep(3 * time::SECOND);
+
+        match (lua::lua_getglobal(l, "update")) {
+        case void => void;
+        case lua::errerr => void; // for some reason ok?
+        case let err: lua::error => abort();
+        };
+
+        lua::lua_pushinteger(l, i: int);
+        dispatch_lua(l, 1, 0);
+
+        lua::lua_pop(l, lua::lua_gettop(l));
     };
 
     log::println("[work] done");
