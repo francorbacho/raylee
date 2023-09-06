@@ -45,6 +45,7 @@ export fn main() void = {
         ('H', "height", "height of the raytraced image (default: 144)"),
         ('s', "samples", "samples per pixel (default: 5)"),
         ('p', "port", "port to use (default: 8221)"),
+        ('n', "run in headless mode (default: no)"),
         "[file]"
     );
     defer getopt::finish(&cmd);
@@ -101,6 +102,9 @@ export fn main() void = {
             case strconv::invalid =>
                 fmt::fatalf("cannot parse port {}: is invalid", opt.1);
             };
+        case 'n' =>
+            config.headless = true;
+            config.task = worker { region = WHOLE_REGION };
         case =>
             fmt::fatalf("bad opt: {}", opt.0);
         };
