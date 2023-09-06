@@ -16,7 +16,6 @@ def WHOLE_REGION: region = region { x1 = 0.0, y1 = 0.0, x2 = 1.0, y2 = 1.0 };
 def HALF_WIDTH: region = region { x1 = 0.5, y1 = 0.0, x2 = 1.0, y2 = 1.0 };
 
 def MAX_FRAME_COUNT = 1000z;
-def PORT: u16 = 8221;
 
 // e.i. server
 type overseer = void;
@@ -33,6 +32,7 @@ type config = struct {
     headless: bool,
     script: (void | str),
     numworkers: size,
+    port: u16,
     task: task,
 };
 
@@ -44,6 +44,7 @@ export fn main() void = {
         ('W', "width", "width of the raytraced image (default: 256)"),
         ('H', "height", "height of the raytraced image (default: 144)"),
         ('s', "samples", "samples per pixel (default: 5)"),
+        ('p', "port", "port to use (default: 8221)"),
         "[file]"
     );
     defer getopt::finish(&cmd);
@@ -54,6 +55,7 @@ export fn main() void = {
         headless = false,
         script = void,
         task = overseer,
+        port = 8221,
         numworkers = 1,
     };
 
@@ -91,6 +93,13 @@ export fn main() void = {
             case strconv::overflow => abort();
             case strconv::invalid =>
                 fmt::fatalf("cannot parse samples {}: is invalid", opt.1);
+            };
+        case 'p' =>
+            config.port = match (strconv::stou16(opt.1)) {
+            case let v: u16 => yield v;
+            case strconv::overflow => abort();
+            case strconv::invalid =>
+                fmt::fatalf("cannot parse port {}: is invalid", opt.1);
             };
         case =>
             fmt::fatalf("bad opt: {}", opt.0);

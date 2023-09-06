@@ -26,7 +26,7 @@ fn run_worker(config: config) void = {
     //      accepting connections.
     time::sleep(100 * time::MILLISECOND);
 
-    let connection = tcp::connect(ip::LOCAL_V4, PORT)!;
+    let connection = tcp::connect(ip::LOCAL_V4, config.port)!;
     let scene = global_scene();
 
     scene.width = config.width;

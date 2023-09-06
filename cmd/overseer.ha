@@ -99,9 +99,9 @@ fn run_sdl(config: config) (void | sdl2::error) = {
     let loop = ev::newloop()!;
     defer ev::finish(&loop);
 
-    log::println("[inet] listening on port", PORT);
+    log::println("[inet] listening on port", config.port);
 
-    const socket = match (ev::listen_tcp(&loop, ip::LOCAL_V4, PORT)) {
+    const socket = match (ev::listen_tcp(&loop, ip::LOCAL_V4, config.port)) {
     case let err: net::error =>
         log::fatalf("Error: listen: {}", net::strerror(err));
     case let err: errors::error =>
