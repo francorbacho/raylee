@@ -1,4 +1,4 @@
-HAREPATH := $(shell hare version -v | grep HAREPATH | cut -d'	' -f 2)
+HAREPATH := $(shell hare version -v | sed -n 's/\t// ; /HAREPATH:/,$$ p' | tail -n +2 | paste -sd:)
 HAREPATH := $(HAREPATH):./third-party/hare-lua/
 HAREPATH := $(HAREPATH):./third-party/hare-sdl2/
 HAREPATH := $(HAREPATH):./third-party/hare-ev/
