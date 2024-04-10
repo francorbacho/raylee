@@ -24,7 +24,8 @@ fn run_worker(config: config) void = {
 
     // XXX: We need to wait here to give time to the overseer program to start
     //      accepting connections.
-    time::sleep(100 * time::MILLISECOND);
+    time::sleep(500 * time::MILLISECOND);
+    log::println("[work] connecting to overseer...");
 
     let connection = match (tcp::connect(ip::LOCAL_V4, config.port)) {
     case let s: net::socket => yield s;
