@@ -127,6 +127,7 @@ fn run(config: config) void = {
     log::printfln("[conf] resolution :: {}x{}", config.width, config.height);
     log::printfln("[conf] samples pp :: {}", config.samples_per_pixel);
     log::printfln("[conf] headless :: {}", config.headless);
+    log::printfln("[conf] workers :: {}", config.numworkers);
     log::printfln("[conf] script :: {}", match (config.script) {
         case void => yield "no";
         case let script: str => yield script;
