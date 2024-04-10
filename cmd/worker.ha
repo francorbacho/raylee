@@ -74,15 +74,13 @@ fn run_worker(config: config) void = {
         send_region(connection, &img, task.region);
 
         match (lua::lua_getglobal(l, "update")) {
-        case void => void;
-        case lua::errerr => void; // for some reason ok?
-        case let err: lua::error => abort();
+        case => void;
+        case lua::tfunction =>
+            lua::lua_pushinteger(l, i: int);
+            dispatch_lua(l, 1, 0);
+
+            lua::lua_pop(l, lua::lua_gettop(l));
         };
-
-        lua::lua_pushinteger(l, i: int);
-        dispatch_lua(l, 1, 0);
-
-        lua::lua_pop(l, lua::lua_gettop(l));
     };
 
     log::println("[work] done");
